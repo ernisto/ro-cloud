@@ -49,7 +49,7 @@ local function get(session: auth.session, product: identity): product_data
 	return auth.request_json(session, url, 'GET')
 end
 local function list(session: auth.session, subject: universe.identity, query: page_query?): product_page
-	local url = `developer-products/v2/universes/{subject.universe_id}/developer-products`
+	local url = `developer-products/v2/universes/{subject.universe_id}/developer-products/creator`
 	return auth.request_json(session, url, 'GET', nil, query)
 end
 

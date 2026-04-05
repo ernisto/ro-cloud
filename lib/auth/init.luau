@@ -20,6 +20,12 @@ export type query_params = {}
 local API_ENDPOINT = 'https://apis.roblox.com/'
 
 -- helpers
+local function mask_from(data: { [string]: any }): string
+	local keys = {}
+	for k in data do table.insert(keys, k) end
+	return table.concat(keys, ',')
+end
+
 local function build_query_string(params: query_params?): string
 	if not params then return '' end
 	local parts = {}
@@ -81,6 +87,7 @@ return table.freeze {
 	request_json = request_json,
 	request_form = request_form,
 	request = request,
+	mask_from = mask_from,
 
 	apikey = apikey,
 	cookie = cookie,

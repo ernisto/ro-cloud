@@ -1,5 +1,4 @@
 local auth = require './auth'
-local operation = require './operation'
 local serde = require '@lune/serde'
 
 -- defs
@@ -11,6 +10,21 @@ type preview = { asset: string?, altText: string? }
 type social_link = { title: string?, uri: string? }
 
 export type asset_data = {
+	assetType: string,
+	assetId: number,
+	displayName: string,
+	description: string,
+	creationContext: creation_context,
+	path: string,
+	revisionId: string,
+	revisionCreateTime: string,
+	moderationResult: moderation_result,
+	icon: string,
+	previews: { preview },
+	state: string,
+	socialLink: social_link,
+}
+export type asset_data_patch = {
 	assetType: string,
 	assetId: number?,
 	displayName: string,
@@ -34,37 +48,45 @@ export type asset_version = {
 }
 
 type operation_error = { code: number, message: string, details: { any }? }
-export type asset_operation = {
-	path: string,
-	done: boolean?,
-	error: operation_error?,
-	response: asset_data?,
-}
+export type asset_operation =
+	| { path: string, done: false, error: operation_error }
+	| { path: string, done: true, response: asset_data }
 
 -- functions
+local function download(
+	session: auth.apikey_session | auth.oauth2_session,
+	subject: identity & { version: number? }
+): buffer
+	local url = `asset-delivery-api/v1/assetId/{subject.asset_id}`
+	local data: { location: string } = auth.request_json(session, url, 'GET', nil, { version = subject.version }) :: any
+
+	local response = auth.request(session, data.location, 'GET')
+	assert(response.ok, `error [{response.statusCode}]: {response.statusMessage}`)
+
+	return buffer.fromstring(response.body)
+end
+
 local function create(
 	session: auth.apikey_session | auth.oauth2_session,
-	asset: asset_data,
-	file: buffer
+	asset: asset_data_patch,
+	content: buffer
 ): asset_operation
 	return auth.request_form(session, 'assets/v1/assets', 'POST', {
 		request = serde.encode('json', asset),
-		fileContent = file,
+		fileContent = content,
 	})
 end
-
 local function update(
 	session: auth.apikey_session | auth.oauth2_session,
 	subject: identity,
-	asset: asset_data,
-	file: buffer?,
-	update_mask: string?
+	asset: asset_data_patch,
+	content: buffer?
 ): asset_operation
 	local path = `assets/v1/assets/{subject.asset_id}`
-	local query = if update_mask then { updateMask = update_mask } else nil
+	local query = { updateMask = auth.mask_from(asset) }
 
 	local fields = { request = serde.encode('json', asset) }
-	if file then fields.fileContent = file end
+	if content then fields.fileContent = content end
 
 	return auth.request_form(session, path, 'PATCH', fields, query)
 end
@@ -86,6 +108,15 @@ local function restore(session: auth.apikey_session | auth.oauth2_session, subje
 	return auth.request_json(session, `assets/v1/assets/{subject.asset_id}:restore`, 'POST')
 end
 
+local function rollback(
+	session: auth.apikey_session | auth.oauth2_session,
+	subject: identity,
+	version: number
+): asset_version
+	local path = `assets/v1/assets/{subject.asset_id}/versions:rollback`
+	return auth.request_form(session, path, 'POST', { assetVersion = `assets/{subject.asset_id}/versions/{version}` })
+end
+
 local function get_version(
 	session: auth.apikey_session | auth.oauth2_session,
 	subject: identity,
@@ -103,24 +134,8 @@ local function list_versions(
 	return auth.request_json(session, path, 'GET', nil, query)
 end
 
-local function rollback(
-	session: auth.apikey_session | auth.oauth2_session,
-	subject: identity,
-	asset_version_path: string
-): asset_version
-	local path = `assets/v1/assets/{subject.asset_id}/versions:rollback`
-	return auth.request_form(session, path, 'POST', { assetVersion = asset_version_path })
-end
-
 local function get_operation(session: auth.apikey_session | auth.oauth2_session, operation_id: string): asset_operation
 	return auth.request_json(session, `assets/v1/operations/{operation_id}`, 'GET')
-end
-
-local function wait_for_operation(
-	session: auth.apikey_session | auth.oauth2_session,
-	operation_id: string
-): asset_operation?
-	return operation.poll_for_result(session, `assets/v1/operations/{operation_id}`) :: any
 end
 
 -- module
@@ -130,9 +145,9 @@ return table.freeze {
 	get = get,
 	archive = archive,
 	restore = restore,
+	download = download,
 	get_version = get_version,
 	list_versions = list_versions,
 	rollback = rollback,
 	get_operation = get_operation,
-	wait_for_operation = wait_for_operation,
 }

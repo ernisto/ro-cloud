@@ -66,14 +66,13 @@ local function update(
 	session: auth.apikey_session | auth.oauth2_session,
 	subject: restriction_identity | place_restriction_identity,
 	data: restriction,
-	update_mask: string?,
 	idempotency_key: string?
 ): restriction
 	local path = if (subject :: any).place_id
 		then `cloud/v2/universes/{subject.universe_id}/places/{(subject :: any).place_id}/user-restrictions/{subject.user_restriction_id}`
 		else `cloud/v2/universes/{subject.universe_id}/user-restrictions/{subject.user_restriction_id}`
 
-	local query = { updateMask = update_mask, ['idempotencyKey.key'] = idempotency_key }
+	local query = { updateMask = auth.mask_from(data), ['idempotencyKey.key'] = idempotency_key }
 	return auth.request_json(session, path, 'PATCH', data, query)
 end
 

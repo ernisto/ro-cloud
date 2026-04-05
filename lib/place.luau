@@ -1,3 +1,4 @@
+local asset = require './asset'
 local auth = require './auth'
 local serde = require '@lune/serde'
 type json = auth.json_object
@@ -44,16 +45,7 @@ local function download(
 	session: auth.apikey_session | auth.oauth2_session,
 	subject: { place_id: number, version: number? }
 ): buffer
-	local url = `https://assetdelivery.roblox.com/v1/asset/?id={subject.place_id}`
-	if subject.version then
-		url ..= `&version={subject.version}`
-	end
-
-	local data: { location: string } = auth.request_json(session, url, 'GET') :: any
-	local response = auth.request(session, data.location, 'GET')
-
-	assert(response.ok, `error [{response.statusCode}]: {response.statusMessage}`)
-	return buffer.fromstring(response.body)
+	return asset.download(session, { asset_id = subject.place_id, version = subject.version })
 end
 
 local function get_info(
@@ -66,11 +58,10 @@ end
 local function update_info(
 	session: auth.apikey_session | auth.oauth2_session,
 	subject: { universe_id: number, place_id: number },
-	patch: info_patch,
-	update_mask: string?
+	patch: info_patch
 ): info
 	local path = `cloud/v2/universes/{subject.universe_id}/places/{subject.place_id}`
-	return auth.request_json(session, path, 'PATCH', patch, { updateMask = update_mask })
+	return auth.request_json(session, path, 'PATCH', patch, { updateMask = auth.mask_from(patch) })
 end
 
 local function get_instance(session: auth.apikey_session, subject: instance_identity): json
@@ -78,14 +69,9 @@ local function get_instance(session: auth.apikey_session, subject: instance_iden
 	return auth.request_json(session, path, 'GET')
 end
 
-local function update_instance(
-	session: auth.apikey_session,
-	subject: instance_identity,
-	data: instance,
-	update_mask: string?
-): json
+local function update_instance(session: auth.apikey_session, subject: instance_identity, data: instance): json
 	local path = `cloud/v2/universes/{subject.universe_id}/places/{subject.place_id}/instances/{subject.instance_id}`
-	return auth.request_json(session, path, 'PATCH', data, { updateMask = update_mask })
+	return auth.request_json(session, path, 'PATCH', data, { updateMask = auth.mask_from(data) })
 end
 
 local function list_instance_children(

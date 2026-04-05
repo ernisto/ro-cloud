@@ -8,12 +8,10 @@ export type luau_task_identity = luau_task_exec.identity
 export type luau_task = luau_task_exec.task
 export type luau_task_binary_input = luau_task_exec.binary_input
 export type luau_task_binary_input_response = luau_task_exec.binary_input_response
-
-local luau_task_exec_log = require '@self/luau_task_exec_log'
-type luau_task_log_message = luau_task_exec_log.structured_message
-type luau_task_struct_log = luau_task_exec_log.structured_task_log
-type luau_task_flat_log = luau_task_exec_log.flat_task_log
-type luau_task_log = luau_task_exec_log.task_log
+export type luau_task_log_message = luau_task_exec.structured_message
+export type luau_task_struct_log = luau_task_exec.structured_task_log
+export type luau_task_flat_log = luau_task_exec.flat_task_log
+export type luau_task_log = luau_task_exec.task_log
 
 local pass = require '@self/game_pass'
 export type pass_identity = pass.identity
@@ -78,10 +76,7 @@ return table.freeze {
 	user_restriction = user_restriction,
 	group = group,
 	user = user_mod,
-
 	luau_task_exec = luau_task_exec,
-	luau_task_exec_log = luau_task_exec_log,
-
 	product = developer_product,
 	pass = pass,
 }
