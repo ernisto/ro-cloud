@@ -1,2 +1,5 @@
 [tools]
-"github:pesde-pkg/pesde" = "latest"
+"github:johnnymorganz/luau-lsp" = "latest"
+"github:johnnymorganz/stylua" = "latest"
+"github:pesde-pkg/pesde" = "0.7.3"
+"github:lune-org/lune" = "0.10.4"
