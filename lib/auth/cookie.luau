@@ -22,7 +22,7 @@ local function request(
 	content_type: string?, -- unknown
 	data: string | buffer?
 )
-	local headers = { ['Content-Type'] = content_type :: any, ['Cookie'] = `.ROBLOSECURITY={session.cookie}` }
+	local headers: any = { ['Content-Type'] = content_type :: any, ['Cookie'] = `.ROBLOSECURITY={session.cookie}` }
 	return net.request { url = path, method = method, body = data, headers = headers }
 end
 

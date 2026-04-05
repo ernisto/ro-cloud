@@ -13,7 +13,7 @@ if cache and fs.isFile(output) then
 	if age < cache then return end
 end
 
-local session = cloud.auth.api.login(api_key)
+local session = cloud.auth.apikey.login(api_key)
 local content = cloud.place.download(session, { place_id = place_id })
 
 fs.writeFile(output, content)

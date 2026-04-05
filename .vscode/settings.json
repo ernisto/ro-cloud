@@ -1,9 +1,7 @@
 {
-  // format
   "stylua.targetReleaseVersion": "latest",
   "editor.formatOnSave": true,
   "files.eol": "\n",
-  // explorer
   "files.exclude": {
     "**/*.lock": false,
     "**/*.lock.*": false,
@@ -22,9 +20,8 @@
     "**/*.lock.*": true,
     "**/*-lock.*": true,
     "**/*_packages/**": true,
-    "**/.pesde/**": true,
+    "**/.pesde/**": true
   },
-  // lsp
   "luau-lsp.platform.type": "standard",
   "luau-lsp.fflags.enableNewSolver": false,
   "luau-lsp.bytecode.vectorCtor": "create",
@@ -38,5 +35,5 @@
   "luau-lsp.ignoreGlobs": [
     "**/*_packages/**",
     "**/.pesde/**"
-  ],
+  ]
 }

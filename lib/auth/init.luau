@@ -5,11 +5,11 @@ local form = require '@self/form'
 local oauth = require '@self/oauth'
 export type oauth2_session = oauth.session
 
-local user = require '@self/user'
-export type cookie_session = user.session
+local cookie = require '@self/cookie'
+export type cookie_session = cookie.session
 
-local api = require '@self/api'
-export type apikey_session = api.session
+local apikey = require '@self/apikey'
+export type apikey_session = apikey.session
 
 -- defs
 export type session = oauth2_session | cookie_session | apikey_session
@@ -38,8 +38,8 @@ local function request(
 	data: string | buffer?
 )
 	return if (session :: any).api_key
-		then api.request(session :: any, path, method, content_type, data)
-		elseif (session :: any).cookie then user.request(session :: any, path, method, content_type, data)
+		then apikey.request(session :: any, path, method, content_type, data)
+		elseif (session :: any).cookie then cookie.request(session :: any, path, method, content_type, data)
 		else oauth.request(session :: any, path, method, content_type, data)
 end
 
@@ -47,7 +47,7 @@ local function request_json(
 	session: session,
 	path: string,
 	method: net.HttpMethod,
-	data: json_object?,
+	data: {}?,
 	query: query_params?
 ): any -- json, but convertable to any struct
 	local full_path = API_ENDPOINT .. path .. build_query_string(query)
@@ -58,15 +58,9 @@ local function request_json(
 	return body
 end
 
-local function request_form(
-	session: session,
-	path: string,
-	method: net.HttpMethod,
-	fields: { [string]: (string | number | boolean | buffer)? },
-	query: query_params?
-)
+local function request_form(session: session, path: string, method: net.HttpMethod, fields: {}, query: query_params?)
 	local f = form()
-	for name, value in fields do
+	for name, value in fields :: any do
 		if type(value) == 'buffer' then
 			f.file(name, 'icon.png', 'image/png', value)
 		else
@@ -88,7 +82,7 @@ return table.freeze {
 	request_form = request_form,
 	request = request,
 
+	apikey = apikey,
+	cookie = cookie,
 	oauth = oauth,
-	user = user,
-	api = api,
 }

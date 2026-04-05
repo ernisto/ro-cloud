@@ -16,7 +16,7 @@ local function request(
 	content_type: string?, -- unknown
 	data: string | buffer?
 )
-	local headers = { ['Content-Type'] = content_type, ['x-api-key'] = session.api_key }
+	local headers: any = { ['Content-Type'] = content_type, ['x-api-key'] = session.api_key }
 	return net.request { url = path, method = method, body = data, headers = headers :: any }
 end
 

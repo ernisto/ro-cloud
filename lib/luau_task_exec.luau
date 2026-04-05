@@ -54,7 +54,7 @@ local function get(session: auth.apikey_session, subject: identity): task
 end
 
 local function wait_for_task(session: auth.apikey_session, subject: identity): done_task?
-	return operation.poll_for_result(session, subject.path)
+	return operation.poll_for_result(session, subject.path) :: any
 end
 
 local function create_binary_input(

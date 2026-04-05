@@ -120,7 +120,7 @@ local function wait_for_operation(
 	session: auth.apikey_session | auth.oauth2_session,
 	operation_id: string
 ): asset_operation?
-	return operation.poll_for_result(session, `assets/v1/operations/{operation_id}`)
+	return operation.poll_for_result(session, `assets/v1/operations/{operation_id}`) :: any
 end
 
 -- module

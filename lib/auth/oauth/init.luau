@@ -59,12 +59,11 @@ local function exchange_code_for_token(
 	redirect_uri: string,
 	code_verifier: string
 ): session
+	local headers: any = { ['Content-Type'] = 'application/x-www-form-urlencoded' }
 	local response = net.request {
 		url = API_ENDPOINT .. 'oauth/v1/token',
 		method = 'POST',
-		headers = {
-			['Content-Type'] = 'application/x-www-form-urlencoded',
-		},
+		headers = headers,
 		body = `grant_type=authorization_code`
 			.. `&code={net.urlEncode(code)}`
 			.. `&redirect_uri={net.urlEncode(redirect_uri)}`
@@ -77,12 +76,11 @@ local function exchange_code_for_token(
 end
 
 local function refresh_token(client_id: string, client_secret: string, refresh_token: string): session
+	local header: any = { ['Content-Type'] = 'application/x-www-form-urlencoded' }
 	local response = net.request {
 		url = API_ENDPOINT .. 'oauth/v1/token',
 		method = 'POST',
-		headers = {
-			['Content-Type'] = 'application/x-www-form-urlencoded',
-		},
+		headers = header,
 		body = `grant_type=refresh_token`
 			.. `&refresh_token={net.urlEncode(refresh_token)}`
 			.. `&client_id={net.urlEncode(client_id)}`
@@ -99,15 +97,9 @@ end
 -- methods
 local function request(session: session, path: string, method: net.HttpMethod, content_type: string?, body: string?)
 	assert(not is_session_expired(session), 'Session has expired. Please refresh the token.')
-	return net.request {
-		url = path,
-		method = method,
-		headers = {
-			['Authorization'] = `{session.token_type} {session.access_token}`,
-			['Content-Type'] = content_type :: any,
-		},
-		body = body,
-	}
+	local header: any =
+		{ ['Authorization'] = `{session.token_type} {session.access_token}`, ['Content-Type'] = content_type }
+	return net.request { url = path, method = method, headers = header, body = body }
 end
 
 -- module
