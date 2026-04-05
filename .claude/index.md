@@ -49,6 +49,22 @@
 |------|---------|
 | `docs/examples/oauth_flow.luau` | Full OAuth2 PKCE flow: authorize in browser → exchange code → persist session.json → auto-refresh on expiry. |
 
+## tests/
+
+| File | Purpose |
+|------|---------|
+| `tests/run.luau` | Entry point. Reads config from CLI args / env vars, runs all suites, prints summary. Exit code 1 on any failure. |
+| `tests/suite/universe.luau` | Tests `get`, `list_secrets`. Requires: `api_key`, `universe_id`. |
+| `tests/suite/place.luau` | Tests `get_info`, `download`. Requires: `place_id`. |
+| `tests/suite/data_store.luau` | Tests `list_stores`, `list_entries`. `list_entries` requires `data_store_id`. |
+| `tests/suite/memory_store.luau` | Tests `list_sorted_map` (needs `sorted_map_id`), `read_queue` (needs `queue_id`). |
+| `tests/suite/user_restriction.luau` | Tests `list`, `list_logs`. Requires: `universe_id`. |
+| `tests/suite/game_pass.luau` | Tests `list`, `get` (needs `pass_id`). |
+| `tests/suite/developer_product.luau` | Tests `list`, `get` (needs `product_id`). |
+| `tests/suite/user.luau` | Tests `get`, `list_inventory`. Requires: `user_id`. |
+| `tests/suite/group.luau` | Tests `get`, `list_roles`, `list_memberships`. Requires: `group_id`. |
+| `tests/suite/asset.luau` | Tests `get`, `list_versions`. Requires: `asset_id`. |
+
 ## API endpoint map
 
 | Module | API base path |

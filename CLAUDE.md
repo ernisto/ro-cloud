@@ -62,6 +62,14 @@ Every resource module follows the same shape:
 - `@pkg` → `./lune_packages`
 - `@self` — resolves within the current package (pesde convention)
 
+## Integration Tests
+
+```bash
+lune run tests/run.luau
+```
+
+All vars can also be set in `.env` (TOML format) or as environment variables (`API_KEY`, `UNIVERSE_ID`, `PLACE_ID`, …). Tests that are missing their required IDs are automatically skipped. Tests only perform read operations — no data is modified.
+
 ## Project Index
 
 `.claude/index.md` contains a detailed index of every module, its identity type, exported functions, and API endpoint map. Always read it at the start of a session and keep it updated whenever modules are added, removed, or their exports change.

@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(luau-lsp analyze:*)"
+    ]
+  }
+}
