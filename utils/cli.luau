@@ -51,12 +51,12 @@ while i <= #process.args do
 end
 
 -- functions
-local function str(key: string): string?
+local function str(key: string | number): string?
+	if type(key) == 'number' then return positional[key] end
 	return options[key]
 end
 local function num(key: string | number): number?
-	if type(key) == 'number' then return tonumber(positional[key]) end
-	return tonumber(options[key :: string])
+	return tonumber(str(key))
 end
 local function uint(key: string | number): number?
 	local val = num(key)
