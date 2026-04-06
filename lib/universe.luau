@@ -71,37 +71,30 @@ export type secret_patch = { secret: string? }
 export type public_key = { key_id: string?, public_key: string? }
 
 -- functions
-local function get(session: auth.apikey_session | auth.oauth2_session, subject: identity): universe_data
-	return auth.request_json(session, `cloud/v2/universes/{subject.universe_id}`, 'GET')
+local function get(session: auth.apikey_session | auth.oauth2_session, subject: identity)
+	return auth.request_json<<universe_data>>(session, 'GET', `cloud/v2/universes/{subject.universe_id}`)
 end
-local function update(
-	session: auth.apikey_session | auth.oauth2_session,
-	subject: identity,
-	patch: universe_patch
-): universe_data
-	return auth.request_json(session, `cloud/v2/universes/{subject.universe_id}`, 'PATCH', patch)
+local function update(session: auth.apikey_session | auth.oauth2_session, subject: identity, patch: universe_patch)
+	return auth.request_json<<universe_data>>(session, 'PATCH', `cloud/v2/universes/{subject.universe_id}`, patch)
 end
 local function publish_message(session: auth.apikey_session | auth.oauth2_session, subject: identity, message: message)
-	return auth.request_json(session, `cloud/v2/universes/{subject.universe_id}:publishMessage`, 'POST', message)
+	local path = `cloud/v2/universes/{subject.universe_id}:publishMessage`
+	return auth.request_json<<nil>>(session, 'POST', path, nil, message)
 end
 local function shutdown(session: auth.apikey_session | auth.oauth2_session, subject: identity)
-	return auth.request_json(session, `cloud/v2/universes/{subject.universe_id}:restartServers`, 'POST')
+	return auth.request_json<<nil>>(session, 'POST', `cloud/v2/universes/{subject.universe_id}:restartServers`)
 end
 
-local function list_secrets(session: auth.apikey_session | auth.oauth2_session, subject: identity): json
-	return auth.request_json(session, `cloud/v2/universes/{subject.universe_id}/secrets`, 'GET')
+local function list_secrets(session: auth.apikey_session | auth.oauth2_session, subject: identity)
+	return auth.request_json<<json>>(session, 'GET', `cloud/v2/universes/{subject.universe_id}/secrets`)
 end
 
-local function create_secret(
-	session: auth.apikey_session | auth.oauth2_session,
-	subject: identity,
-	data: secret_create
-): secret
-	return auth.request_json(session, `cloud/v2/universes/{subject.universe_id}/secrets`, 'POST', data)
+local function create_secret(session: auth.apikey_session | auth.oauth2_session, subject: identity, data: secret_create)
+	return auth.request_json<<secret>>(session, 'POST', `cloud/v2/universes/{subject.universe_id}/secrets`, nil, data)
 end
 
 local function delete_secret(session: auth.apikey_session | auth.oauth2_session, subject: identity, secret_id: string)
-	auth.request_json(session, `cloud/v2/universes/{subject.universe_id}/secrets/{secret_id}`, 'DELETE')
+	return auth.request_json<<nil>>(session, 'DELETE', `cloud/v2/universes/{subject.universe_id}/secrets/{secret_id}`)
 end
 
 local function update_secret(
@@ -109,12 +102,14 @@ local function update_secret(
 	subject: identity,
 	secret_id: string,
 	data: secret_patch
-): secret
-	return auth.request_json(session, `cloud/v2/universes/{subject.universe_id}/secrets/{secret_id}`, 'PATCH', data)
+)
+	local path = `cloud/v2/universes/{subject.universe_id}/secrets/{secret_id}`
+	return auth.request_json<<secret>>(session, 'PATCH', path, nil, data)
 end
 
-local function get_public_key(session: auth.apikey_session | auth.oauth2_session, subject: identity): public_key
-	return auth.request_json(session, `cloud/v2/universes/{subject.universe_id}/secrets/public-key`, 'GET')
+local function get_public_key(session: auth.apikey_session | auth.oauth2_session, subject: identity)
+	local path = `cloud/v2/universes/{subject.universe_id}/secrets/public-key`
+	return auth.request_json<<public_key>>(session, 'GET', path)
 end
 
 -- module

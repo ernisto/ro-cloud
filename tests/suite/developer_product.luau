@@ -22,7 +22,7 @@ function suite.run(config: config, runner: runner)
 
 	runner.test('get', function()
 		local data = cloud.product.get(session, id)
-		assert(data.name, 'missing name')
+		assert(data.ok and data.body.name, 'missing name')
 	end)
 end
 

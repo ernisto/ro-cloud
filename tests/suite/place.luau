@@ -23,7 +23,7 @@ function suite.run(config: config, runner: runner)
 
 	runner.test('download', function()
 		local data = cloud.place.download(session, { place_id = place_id })
-		assert(buffer.len(data) > 0, 'empty buffer')
+		assert(data.ok and buffer.len(data.body) > 0, 'empty buffer')
 	end)
 end
 

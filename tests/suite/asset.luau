@@ -17,7 +17,7 @@ function suite.run(config: config, runner: runner)
 
 	runner.test('get', function()
 		local data = cloud.asset.get(session, id)
-		assert(data.assetType, 'missing assetType')
+		assert(data.ok and data.body.assetType, 'missing assetType')
 	end)
 
 	runner.test('list_versions', function()

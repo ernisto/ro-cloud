@@ -11,13 +11,14 @@ end
 -- methods
 local function request(
 	session: session,
-	path: string,
 	method: net.HttpMethod,
-	content_type: string?, -- unknown
-	data: string | buffer?
+	url: string,
+	query: {}?,
+	body: string | buffer?,
+	content_type: string? -- unknown
 )
 	local headers: any = { ['Content-Type'] = content_type, ['x-api-key'] = session.api_key }
-	return net.request { url = path, method = method, body = data, headers = headers :: any }
+	return net.request { url = url, method = method, body = body, headers = headers :: any }
 end
 
 -- module

@@ -1,14 +1,13 @@
 local net = require '@lune/net'
 local serde = require '@lune/serde'
 
+local apikey = require '@self/apikey'
+local cookie = require '@self/cookie'
 local form = require '@self/form'
 local oauth = require '@self/oauth'
+
 export type oauth2_session = oauth.session
-
-local cookie = require '@self/cookie'
 export type cookie_session = cookie.session
-
-local apikey = require '@self/apikey'
 export type apikey_session = apikey.session
 
 -- defs
@@ -16,6 +15,10 @@ export type session = oauth2_session | cookie_session | apikey_session
 export type json = number | boolean | string | { json } | json_object?
 export type json_object = { [string]: json }
 export type query_params = {}
+
+export type http_result<R = nil, E = string> = http_success<R> | http_fail<E>
+export type http_success<R> = { ok: true, code: number, message: string, body: R }
+export type http_fail<E> = { ok: false, code: number, message: string, body: E }
 
 local API_ENDPOINT = 'https://apis.roblox.com/'
 
@@ -28,73 +31,49 @@ local function mask_from(data: { [string]: any }): string
 	return table.concat(keys, ',')
 end
 
-local function append_query(path: string, query: query_params?): string
-	if not query then return path end
-	local parts = {}
-
-	for k, v in query do
-		table.insert(parts, `{k}={tostring(v)}`)
-	end
-	return path .. if #parts > 0 then '?' .. table.concat(parts, '&') else ''
-end
-
 -- functions
 local function request(
 	session: session,
-	path: string,
 	method: net.HttpMethod,
-	content_type: string?,
-	data: string | buffer?,
-	query: query_params?
+	url: string,
+	query: query_params?,
+	body: string | buffer?,
+	content_type: string?
 )
-	path = append_query(path, query)
-	return if (session :: any).api_key
-		then apikey.request(session :: any, path, method, content_type, data)
-		elseif (session :: any).cookie then cookie.request(session :: any, path, method, content_type, data)
-		else oauth.request(session :: any, path, method, content_type, data)
+	local any_session = session :: any
+	-- stylua: ignore
+	return if any_session.api_key then apikey.request(any_session, method, url, query, body, content_type)
+		elseif any_session.cookie then cookie.request(any_session, method, url, query, body, content_type)
+		else oauth.request(any_session, method, url, query, body, content_type)
 end
 
-local function request_json(
+local function request_json<R, E>(
 	session: session,
-	path: string,
 	method: net.HttpMethod,
-	data: {}?,
-	query: query_params?
-): any -- json, but convertable to any struct
-	local full_path = API_ENDPOINT .. path
-	local response = request(session, full_path, method, 'application/json', data and serde.encode('json', data), query)
-
-	local body = serde.decode('json', response.body)
-	assert(response.ok, `Request fail [{response.statusCode}]: {response.statusMessage}\n{body and body.message or ''}`)
-
-	return body
-end
-
-local function request_form(session: session, path: string, method: net.HttpMethod, fields: {}, query: query_params?)
-	local f = form()
-	for name, value in fields :: any do
-		if type(value) == 'buffer' then
-			f.file(name, 'icon.png', 'image/png', value)
-		else
-			f.text(name, value :: any)
-		end
-	end
-
-	local full_path = API_ENDPOINT .. path
-	local response = request(session, full_path, method, `multipart/form-data; boundary={f.boundary}`, f.build(), query)
-
-	local body = if response.body:match '^{' then serde.decode('json', response.body) else {}
-	assert(response.ok, `Request fail [{response.statusCode}]: {response.statusMessage}\n{body.errorMessage or ''}`)
-
-	return body
+	path: string,
+	query: query_params?,
+	data: string | {}?,
+	content_type: string?
+): http_result<R, E>
+	local json_data = if type(data) == 'table' then serde.encode('json', data) else data
+	local response =
+		request(session, method, API_ENDPOINT .. path, query, json_data, content_type or 'application/json')
+	return {
+		body = serde.decode('json', response.body),
+		message = response.statusMessage,
+		headers = response.headers,
+		code = response.statusCode,
+		ok = response.ok,
+	} :: any
 end
 
 -- module
 return table.freeze {
 	request_json = request_json,
-	request_form = request_form,
 	request = request,
+
 	mask_from = mask_from,
+	form = form.by_table,
 
 	apikey = apikey,
 	cookie = cookie,

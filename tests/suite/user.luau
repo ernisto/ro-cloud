@@ -17,7 +17,7 @@ function suite.run(config: config, runner: runner)
 
 	runner.test('get', function()
 		local data = cloud.user.get(session, id)
-		assert(data.path, 'missing path')
+		assert(data.ok and data.body.path, 'missing path')
 	end)
 
 	runner.test('list_inventory', function()

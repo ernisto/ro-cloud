@@ -59,62 +59,57 @@ export type join_request = { path: string?, createTime: string?, user: string? }
 type page_query = { maxPageSize: number?, pageToken: string? }
 
 -- functions
-local function get(session: auth.apikey_session | auth.oauth2_session, subject: identity): group
-	return auth.request_json(session, `cloud/v2/groups/{subject.group_id}`, 'GET')
+local function get(session: auth.apikey_session | auth.oauth2_session, subject: identity)
+	return auth.request_json<<group>>(session, 'GET', `cloud/v2/groups/{subject.group_id}`)
 end
 
-local function get_shout(session: auth.apikey_session | auth.oauth2_session, subject: identity): shout
-	return auth.request_json(session, `cloud/v2/groups/{subject.group_id}/shout`, 'GET')
+local function get_shout(session: auth.apikey_session | auth.oauth2_session, subject: identity)
+	return auth.request_json<<shout>>(session, 'GET', `cloud/v2/groups/{subject.group_id}/shout`)
 end
 
-local function list_roles(
-	session: auth.apikey_session | auth.oauth2_session,
-	subject: identity,
-	query: page_query?
-): auth.json_object
-	local path = `cloud/v2/groups/{subject.group_id}/roles`
-	return auth.request_json(session, path, 'GET', nil, query)
+local function list_roles(session: auth.apikey_session | auth.oauth2_session, subject: identity, query: page_query?)
+	return auth.request_json<<auth.json_object>>(session, 'GET', `cloud/v2/groups/{subject.group_id}/roles`, query)
 end
 
-local function get_role(session: auth.apikey_session | auth.oauth2_session, subject: role_identity): role
-	return auth.request_json(session, `cloud/v2/groups/{subject.group_id}/roles/{subject.role_id}`, 'GET')
+local function get_role(session: auth.apikey_session | auth.oauth2_session, subject: role_identity)
+	return auth.request_json<<role>>(session, 'GET', `cloud/v2/groups/{subject.group_id}/roles/{subject.role_id}`)
 end
 
 local function list_memberships(
 	session: auth.apikey_session | auth.oauth2_session,
 	subject: identity,
 	query: page_query?
-): auth.json_object
+)
 	local path = `cloud/v2/groups/{subject.group_id}/memberships`
-	return auth.request_json(session, path, 'GET', nil, query)
+	return auth.request_json<<auth.json_object>>(session, 'GET', path, query)
 end
 
 local function update_membership(
 	session: auth.apikey_session | auth.oauth2_session,
 	subject: membership_identity,
 	data: membership
-): membership
+)
 	local path = `cloud/v2/groups/{subject.group_id}/memberships/{subject.membership_id}`
-	return auth.request_json(session, path, 'PATCH', data)
+	return auth.request_json<<membership>>(session, 'PATCH', path, nil, data)
 end
 
 local function list_join_requests(
 	session: auth.apikey_session | auth.oauth2_session,
 	subject: identity,
 	query: page_query?
-): auth.json_object
+)
 	local path = `cloud/v2/groups/{subject.group_id}/join-requests`
-	return auth.request_json(session, path, 'GET', nil, query)
+	return auth.request_json<<auth.json_object>>(session, 'GET', path, query)
 end
 
 local function accept_join_request(session: auth.apikey_session | auth.oauth2_session, subject: join_request_identity)
 	local path = `cloud/v2/groups/{subject.group_id}/join-requests/{subject.join_request_id}:accept`
-	auth.request_json(session, path, 'POST')
+	return auth.request_json<<nil>>(session, 'POST', path)
 end
 
 local function decline_join_request(session: auth.apikey_session | auth.oauth2_session, subject: join_request_identity)
 	local path = `cloud/v2/groups/{subject.group_id}/join-requests/{subject.join_request_id}:decline`
-	auth.request_json(session, path, 'POST')
+	return auth.request_json<<nil>>(session, 'POST', path)
 end
 
 -- module

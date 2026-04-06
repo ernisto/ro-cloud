@@ -20,7 +20,7 @@ function suite.run(config: config, runner: runner)
 	if config.queue_id then
 		local id = { universe_id = config.universe_id, queue_id = config.queue_id :: string }
 		runner.test('read_queue', function()
-			cloud.memory_store.read_queue(session, id, 1)
+			cloud.memory_store.read_queue(session, id, { count = 1 })
 		end)
 	else
 		runner.skip('read_queue', 'QUEUE_ID not set')

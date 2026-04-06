@@ -22,29 +22,25 @@ type page_query = { limit: number?, cursor: string?, sortOrder: 'Asc' | 'Desc', 
 type page<Element> = { nextPageToken: string?, prevPageToken: string, data: { Element } }
 
 -- functions
-local function get_user_universes(session: auth.cookie_session, query: page_query?): page<dev_universe>
-	local res = auth.request(session, `https://develop.roblox.com/v1/user/universes`, 'GET', nil, nil, query)
+local function get_user_universes(session: auth.cookie_session, query: page_query?)
+	local res = auth.request(session, 'GET', `https://develop.roblox.com/v1/user/universes`, query)
 	local body = serde.decode('json', res.body)
 
 	assert(res.ok, res.statusMessage)
 	return body
 end
 
-local function get_group_universes(
-	session: auth.cookie_session,
-	subject: { group_id: number },
-	query: page_query?
-): page<dev_universe>
+local function get_group_universes(session: auth.cookie_session, subject: { group_id: number }, query: page_query?)
 	local path = `https://develop.roblox.com/v1/groups/{subject.group_id}/universes`
-	local res = auth.request(session, path, 'GET', nil, nil, query)
+	local res = auth.request(session, 'GET', path, query)
 	local body = serde.decode('json', res.body)
 
 	assert(res.ok, res.statusMessage)
 	return body
 end
 
-local function get_groups(session: auth.cookie_session): { dev_group }
-	local res = auth.request(session, `https://develop.roblox.com/v1/user/groups/canmanagegamesoritems`, 'GET')
+local function get_groups(session: auth.cookie_session)
+	local res = auth.request(session, 'GET', `https://develop.roblox.com/v1/user/groups/canmanagegamesoritems`)
 	local body = serde.decode('json', res.body)
 
 	assert(res.ok, res.statusMessage)

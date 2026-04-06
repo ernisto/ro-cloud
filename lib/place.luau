@@ -5,7 +5,7 @@ type json = auth.json_object
 
 -- defs
 export type version_identity = { universe_id: number, place_id: number, version: number }
-export type identity = { universe_id: number, place_id: number, version: number }
+export type identity = { universe_id: number, place_id: number }
 
 export type info = {
 	path: string?,
@@ -26,62 +26,51 @@ export type instance_identity = { universe_id: number, place_id: number, instanc
 type page_query = { maxPageSize: number?, pageToken: string? }
 
 -- functions
-local function upload(
-	session: auth.apikey_session,
-	subject: { universe_id: number, place_id: number },
-	file: buffer,
-	do_publish: boolean?
-): version_identity
-	local url = `universes/v1/{subject.universe_id}/places/{subject.place_id}/versions?versionType={if do_publish
-		then 'Published'
-		else 'Saved'}`
+local function upload(session: auth.apikey_session, subject: identity, file: buffer, do_publish: boolean?)
+	local version_type = if do_publish then 'Published' else 'Saved'
+	local path = `universes/v1/{subject.universe_id}/places/{subject.place_id}/versions?versionType={version_type}`
 
-	local res = auth.request(session, url, 'POST', 'application/octet-stream', file)
-	local body = serde.decode('json', res.body)
-
-	return { universe_id = subject.universe_id, place_id = subject.place_id, version = body.versionNumber }
+	local response = auth.request(session, 'POST', path, nil, file, 'application/octet-stream')
+	local result: auth.http_result<{ versionNumber: number }> = {
+		body = serde.decode('json', response.body),
+		message = response.statusMessage,
+		headers = response.headers,
+		code = response.statusCode,
+		ok = response.ok,
+	} :: any
+	return result
 end
 local function download(
 	session: auth.apikey_session | auth.oauth2_session,
 	subject: { place_id: number, version: number? }
-): buffer
+)
 	return asset.download(session, { asset_id = subject.place_id, version = subject.version })
 end
 
-local function get_info(
-	session: auth.apikey_session | auth.oauth2_session,
-	subject: { universe_id: number, place_id: number }
-): info
-	return auth.request_json(session, `cloud/v2/universes/{subject.universe_id}/places/{subject.place_id}`, 'GET')
-end
-
-local function update_info(
-	session: auth.apikey_session | auth.oauth2_session,
-	subject: { universe_id: number, place_id: number },
-	patch: info_patch
-): info
+local function get_info(session: auth.apikey_session | auth.oauth2_session, subject: identity)
 	local path = `cloud/v2/universes/{subject.universe_id}/places/{subject.place_id}`
-	return auth.request_json(session, path, 'PATCH', patch, { updateMask = auth.mask_from(patch) })
+	return auth.request_json<<info>>(session, 'GET', path)
 end
 
-local function get_instance(session: auth.apikey_session, subject: instance_identity): json
+local function update_info(session: auth.apikey_session | auth.oauth2_session, subject: identity, patch: info_patch)
+	local path = `cloud/v2/universes/{subject.universe_id}/places/{subject.place_id}`
+	return auth.request_json<<info>>(session, 'PATCH', path, { updateMask = auth.mask_from(patch) }, patch)
+end
+
+local function get_instance(session: auth.apikey_session, subject: instance_identity)
 	local path = `cloud/v2/universes/{subject.universe_id}/places/{subject.place_id}/instances/{subject.instance_id}`
-	return auth.request_json(session, path, 'GET')
+	return auth.request_json<<json>>(session, 'GET', path)
 end
 
-local function update_instance(session: auth.apikey_session, subject: instance_identity, data: instance): json
+local function update_instance(session: auth.apikey_session, subject: instance_identity, data: instance)
 	local path = `cloud/v2/universes/{subject.universe_id}/places/{subject.place_id}/instances/{subject.instance_id}`
-	return auth.request_json(session, path, 'PATCH', data, { updateMask = auth.mask_from(data) })
+	return auth.request_json<<json>>(session, 'PATCH', path, { updateMask = auth.mask_from(data) }, data)
 end
 
-local function list_instance_children(
-	session: auth.apikey_session,
-	subject: instance_identity,
-	query: page_query?
-): json
+local function list_instance_children(session: auth.apikey_session, subject: instance_identity, query: page_query?)
 	local path =
 		`cloud/v2/universes/{subject.universe_id}/places/{subject.place_id}/instances/{subject.instance_id}:listChildren`
-	return auth.request_json(session, path, 'GET', nil, query)
+	return auth.request_json<<json>>(session, 'GET', path, query)
 end
 
 -- module

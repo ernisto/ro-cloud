@@ -96,7 +96,7 @@ print('Expires in:', session.expires_in, 'seconds')
 print('Scopes:', table.concat(session.scope, ', '))
 
 print 'Testing access to API...'
-local response = auth.request_json(session, 'oauth/v1/userinfo', 'GET', {})
+local response = auth.request_json(session, 'GET', 'oauth/v1/userinfo')
 
 print 'API response:'
 print(response)

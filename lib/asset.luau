@@ -3,6 +3,7 @@ local serde = require '@lune/serde'
 
 -- defs
 export type identity = { asset_id: number }
+export type version_identity = identity & { version: number }
 
 type creation_context = { creator: string?, expectedPrice: number? }
 type moderation_result = { moderationState: string? }
@@ -48,97 +49,79 @@ export type asset_version = {
 }
 
 type operation_error = { code: number, message: string, details: { any }? }
+type page_query = { maxPageSize: number?, pageToken: string? }
+
 export type asset_operation =
 	| { path: string, done: false, error: operation_error }
 	| { path: string, done: true, response: asset_data }
 
-type download_res = { location: string, errors: nil } | { location: nil, errors: any }
+type err_response = { errors: { { code: number, message: string } } }
 
 -- functions
 local function download(
 	session: auth.apikey_session | auth.oauth2_session,
-	subject: identity & { version: number? }
-): buffer
-	local url = `asset-delivery-api/v1/assetId/{subject.asset_id}`
-	local data: download_res = auth.request_json(session, url, 'GET', nil, { version = subject.version })
+	subject: identity | version_identity
+): auth.http_result<buffer, err_response>
+	local path = `asset-delivery-api/v1/assetId/{subject.asset_id}`
+	local location_response = auth.request_json(session, 'GET', path, { version = (subject :: any).version })
 
-	if data.location == nil then error(`Http error [{data.errors[1].code}]: {data.errors[1].message}`) end
-	local response = auth.request(session, data.location, 'GET')
+	if not location_response.ok then return location_response end
+	local response = auth.request(session, 'GET', location_response.body.location)
 
-	assert(response.ok, `error [{response.statusCode}]: {response.statusMessage}`)
-	return buffer.fromstring(response.body)
+	return {
+		ok = response.ok,
+		code = response.statusCode,
+		message = response.statusMessage,
+		headers = response.headers,
+		body = if response.ok then buffer.fromstring(response.body) else serde.decode('json', response.body),
+	} :: any
 end
 
-local function create(
-	session: auth.apikey_session | auth.oauth2_session,
-	asset: asset_data_patch,
-	content: buffer
-): asset_operation
-	return auth.request_form(session, 'assets/v1/assets', 'POST', {
-		request = serde.encode('json', asset),
-		fileContent = content,
-	})
+local function create(session: auth.apikey_session | auth.oauth2_session, asset: asset_data_patch, content: buffer)
+	local data = auth.form { fileContent = content, request = serde.encode('json', asset) }
+	return auth.request_json<<asset_operation>>(session, 'POST', 'assets/v1/assets', nil, data)
 end
+
 local function update(
 	session: auth.apikey_session | auth.oauth2_session,
 	subject: identity,
 	asset: asset_data_patch,
 	content: buffer?
-): asset_operation
+)
 	local path = `assets/v1/assets/{subject.asset_id}`
-	local query = { updateMask = auth.mask_from(asset) }
-
-	local fields = { request = serde.encode('json', asset) }
-	if content then fields.fileContent = content end
-
-	return auth.request_form(session, path, 'PATCH', fields, query)
+	local data = auth.form { request = serde.encode('json', asset), fileContent = content }
+	return auth.request_json<<asset_operation>>(session, 'PATCH', path, { updateMask = auth.mask_from(asset) }, data)
 end
 
-local function get(
-	session: auth.apikey_session | auth.oauth2_session,
-	subject: identity,
-	read_mask: string?
-): asset_data
+local function get(session: auth.apikey_session | auth.oauth2_session, subject: identity, read_mask: string?)
 	local path = `assets/v1/assets/{subject.asset_id}`
-	return auth.request_json(session, path, 'GET', nil, { readMask = read_mask })
+	return auth.request_json<<asset_data>>(session, 'GET', path, { readMask = read_mask })
 end
 
-local function archive(session: auth.apikey_session | auth.oauth2_session, subject: identity): asset_data
-	return auth.request_json(session, `assets/v1/assets/{subject.asset_id}:archive`, 'POST')
+local function archive(session: auth.apikey_session | auth.oauth2_session, subject: identity)
+	return auth.request_json<<asset_data>>(session, 'POST', `assets/v1/assets/{subject.asset_id}:archive`)
 end
 
-local function restore(session: auth.apikey_session | auth.oauth2_session, subject: identity): asset_data
-	return auth.request_json(session, `assets/v1/assets/{subject.asset_id}:restore`, 'POST')
+local function restore(session: auth.apikey_session | auth.oauth2_session, subject: identity)
+	return auth.request_json<<asset_data>>(session, 'POST', `assets/v1/assets/{subject.asset_id}:restore`)
 end
 
-local function rollback(
-	session: auth.apikey_session | auth.oauth2_session,
-	subject: identity,
-	version: number
-): asset_version
+local function rollback(session: auth.apikey_session | auth.oauth2_session, subject: identity, version: number)
 	local path = `assets/v1/assets/{subject.asset_id}/versions:rollback`
-	return auth.request_form(session, path, 'POST', { assetVersion = `assets/{subject.asset_id}/versions/{version}` })
+	local data = auth.form { assetVersion = `assets/{subject.asset_id}/versions/{version}` }
+	return auth.request_json<<asset_version>>(session, 'POST', path, nil, data)
 end
 
-local function get_version(
-	session: auth.apikey_session | auth.oauth2_session,
-	subject: identity,
-	version: string
-): asset_version
-	return auth.request_json(session, `assets/v1/assets/{subject.asset_id}/versions/{version}`, 'GET')
+local function get_version(session: auth.apikey_session | auth.oauth2_session, subject: identity, version: string)
+	return auth.request_json<<asset_version>>(session, 'GET', `assets/v1/assets/{subject.asset_id}/versions/{version}`)
 end
 
-local function list_versions(
-	session: auth.apikey_session | auth.oauth2_session,
-	subject: identity,
-	query: { maxPageSize: number?, pageToken: string? }?
-): auth.json_object
-	local path = `assets/v1/assets/{subject.asset_id}/versions`
-	return auth.request_json(session, path, 'GET', nil, query)
+local function list_versions(session: auth.apikey_session | auth.oauth2_session, subject: identity, query: page_query?)
+	return auth.request_json<<{}>>(session, 'GET', `assets/v1/assets/{subject.asset_id}/versions`, query)
 end
 
-local function get_operation(session: auth.apikey_session | auth.oauth2_session, operation_id: string): asset_operation
-	return auth.request_json(session, `assets/v1/operations/{operation_id}`, 'GET')
+local function get_operation(session: auth.apikey_session | auth.oauth2_session, operation_id: string)
+	return auth.request_json<<asset_operation>>(session, 'GET', `assets/v1/operations/{operation_id}`)
 end
 
 -- module

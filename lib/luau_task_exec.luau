@@ -84,24 +84,20 @@ type list_structured = (
 ) -> response_structured
 
 -- functions
-local function create(
-	session: auth.apikey_session,
-	subject: place.identity | place.version_identity,
-	task: task_input
-): pending_task
-	local path = `cloud/v2/universes/{subject.universe_id}/places/{subject.place_id}/`
-	if subject.version ~= nil then
-		path ..= `versions/{subject.version}/`
-	end
-	return auth.request_json(session, path .. 'luau-execution-session-tasks', 'POST', task)
+local function create(session: auth.apikey_session, subject: place.identity | place.version_identity, task: task_input)
+	local path = if (subject :: any).version
+		then `cloud/v2/universes/{subject.universe_id}/places/{subject.place_id}/versions/{(subject :: any).version}/luau-execution-session-tasks`
+		else `cloud/v2/universes/{subject.universe_id}/places/{subject.place_id}/luau-execution-session-tasks`
+
+	return auth.request_json<<pending_task>>(session, 'POST', path, task)
 end
 
-local function get(session: auth.apikey_session, subject: identity): task
-	return auth.request_json(session, `cloud/v2/{subject.path}`, 'GET')
+local function get(session: auth.apikey_session, subject: identity)
+	return auth.request_json<<task>>(session, 'GET', `cloud/v2/{subject.path}`)
 end
 
-local function list(session: auth.apikey_session, subject: identity, query: query): response
-	return auth.request_json(session, `cloud/v2/{subject.path}/logs`, 'GET', query :: any) :: any
+local function list(session: auth.apikey_session, subject: identity, query: query)
+	return auth.request_json<<response>>(session, 'GET', `cloud/v2/{subject.path}/logs`, query)
 end
 
 -- module

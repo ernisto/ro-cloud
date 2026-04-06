@@ -33,22 +33,21 @@ export type pass_page = {
 }
 
 -- functions
-local function create(session: auth.session, universe_id: number, data: pass_data): identity
-	local url = `game-passes/v1/universes/{universe_id}/game-passes`
-	local result = auth.request_form(session, url, 'POST', data)
-	return { universe_id = universe_id, pass_id = result.gamePassId }
+local function create(session: auth.session, universe_id: number, data: pass_data)
+	local path = `game-passes/v1/universes/{universe_id}/game-passes`
+	return auth.request_json<<pass_info>>(session, 'POST', path, nil, auth.form(data))
 end
 local function update(session: auth.session, pass: identity, data: pass_patch)
-	local url = `game-passes/v1/universes/{pass.universe_id}/game-passes/{pass.pass_id}`
-	auth.request_form(session, url, 'PATCH', data)
+	local path = `game-passes/v1/universes/{pass.universe_id}/game-passes/{pass.pass_id}`
+	return auth.request_json<<nil>>(session, 'PATCH', path, nil, auth.form(data))
 end
-local function get(session: auth.session, pass: identity): pass_info
-	local url = `game-passes/v1/universes/{pass.universe_id}/game-passes/{pass.pass_id}/creator`
-	return auth.request_json(session, url, 'GET')
+local function get(session: auth.session, pass: identity)
+	local path = `game-passes/v1/universes/{pass.universe_id}/game-passes/{pass.pass_id}/creator`
+	return auth.request_json<<pass_info>>(session, 'GET', path)
 end
-local function list(session: auth.session, subject: universe.identity, query: page_query?): pass_page
-	local url = `game-passes/v1/universes/{subject.universe_id}/game-passes/creator`
-	return auth.request_json(session, url, 'GET', nil, query)
+local function list(session: auth.session, subject: universe.identity, query: page_query?)
+	local path = `game-passes/v1/universes/{subject.universe_id}/game-passes/creator`
+	return auth.request_json<<pass_page>>(session, 'GET', path, query)
 end
 
 -- module

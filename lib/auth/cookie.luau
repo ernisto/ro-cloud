@@ -18,18 +18,19 @@ end
 -- methods
 local function request(
 	session: session,
-	path: string,
 	method: net.HttpMethod,
-	content_type: string?, -- unknown
-	data: string | buffer?
+	url: string,
+	query: {}?,
+	body: string | buffer?,
+	content_type: string? -- unknown
 )
-	local headers: any = { ['Content-Type'] = content_type :: any, ['Cookie'] = session.cookie }
-	return net.request { url = path, method = method, body = data, headers = headers }
+	local headers: any = { ['Content-Type'] = content_type, ['Cookie'] = session.cookie }
+	return net.request { url = url, method = method, body = body, headers = headers }
 end
 
 type user = { id: number, name: string, displayName: string }
 local function get_user_info(session: session): user
-	local res = request(session, 'https://users.roblox.com/v1/users/authenticated', 'GET')
+	local res = request(session, 'GET', 'https://users.roblox.com/v1/users/authenticated')
 	assert(res.ok, res.statusMessage)
 
 	return serde.decode('json', res.body)

@@ -43,23 +43,23 @@ local function list(
 	session: auth.apikey_session | auth.oauth2_session,
 	subject: universe_identity | place_identity,
 	query: page_query?
-): json
+)
 	local path = if (subject :: any).place_id
 		then `cloud/v2/universes/{subject.universe_id}/places/{(subject :: any).place_id}/user-restrictions`
 		else `cloud/v2/universes/{subject.universe_id}/user-restrictions`
 
-	return auth.request_json(session, path, 'GET', nil, query)
+	return auth.request_json<<json>>(session, 'GET', path, query)
 end
 
 local function get(
 	session: auth.apikey_session | auth.oauth2_session,
 	subject: restriction_identity | place_restriction_identity
-): restriction
+)
 	local path = if (subject :: any).place_id
 		then `cloud/v2/universes/{subject.universe_id}/places/{(subject :: any).place_id}/user-restrictions/{subject.user_restriction_id}`
 		else `cloud/v2/universes/{subject.universe_id}/user-restrictions/{subject.user_restriction_id}`
 
-	return auth.request_json(session, path, 'GET')
+	return auth.request_json<<restriction>>(session, 'GET', path)
 end
 
 local function update(
@@ -67,13 +67,13 @@ local function update(
 	subject: restriction_identity | place_restriction_identity,
 	data: restriction,
 	idempotency_key: string?
-): restriction
+)
 	local path = if (subject :: any).place_id
 		then `cloud/v2/universes/{subject.universe_id}/places/{(subject :: any).place_id}/user-restrictions/{subject.user_restriction_id}`
 		else `cloud/v2/universes/{subject.universe_id}/user-restrictions/{subject.user_restriction_id}`
 
 	local query = { updateMask = auth.mask_from(data), ['idempotencyKey.key'] = idempotency_key }
-	return auth.request_json(session, path, 'PATCH', data, query)
+	return auth.request_json<<restriction>>(session, 'PATCH', path, query, data)
 end
 
 local function list_logs(
@@ -82,7 +82,7 @@ local function list_logs(
 	query: page_query?
 ): json
 	local path = `cloud/v2/universes/{subject.universe_id}/user-restrictions:listLogs`
-	return auth.request_json(session, path, 'GET', nil, query)
+	return auth.request_json(session, 'GET', path, query)
 end
 
 -- module

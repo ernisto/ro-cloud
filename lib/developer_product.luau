@@ -36,21 +36,21 @@ export type product_page = {
 }
 
 -- functions
-local function create(session: auth.session, subject: universe.identity, data: product_create_data): product_data
-	local url = `developer-products/v2/universes/{subject.universe_id}/developer-products`
-	return auth.request_form(session, url, 'POST', data)
+local function create(session: auth.session, subject: universe.identity, data: product_create_data)
+	local path = `developer-products/v2/universes/{subject.universe_id}/developer-products`
+	return auth.request_json<<product_data>>(session, 'POST', path, nil, auth.form(data))
 end
 local function update(session: auth.session, product: identity, data: product_patch)
-	local url = `developer-products/v2/universes/{product.universe_id}/developer-products/{product.product_id}`
-	auth.request_form(session, url, 'PATCH', data)
+	local path = `developer-products/v2/universes/{product.universe_id}/developer-products/{product.product_id}`
+	return auth.request_json<<nil>>(session, 'PATCH', path, nil, auth.form(data))
 end
-local function get(session: auth.session, product: identity): product_data
-	local url = `developer-products/v2/universes/{product.universe_id}/developer-products/{product.product_id}/creator`
-	return auth.request_json(session, url, 'GET')
+local function get(session: auth.session, product: identity)
+	local path = `developer-products/v2/universes/{product.universe_id}/developer-products/{product.product_id}/creator`
+	return auth.request_json<<product_data>>(session, 'GET', path)
 end
-local function list(session: auth.session, subject: universe.identity, query: page_query?): product_page
-	local url = `developer-products/v2/universes/{subject.universe_id}/developer-products/creator`
-	return auth.request_json(session, url, 'GET', nil, query)
+local function list(session: auth.session, subject: universe.identity, query: page_query?)
+	local path = `developer-products/v2/universes/{subject.universe_id}/developer-products/creator`
+	return auth.request_json<<product_page>>(session, 'GET', path, query)
 end
 
 -- module

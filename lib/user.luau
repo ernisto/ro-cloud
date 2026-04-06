@@ -53,35 +53,31 @@ export type subscription = {
 type page_query = { maxPageSize: number?, pageToken: string?, filter: string? }
 
 -- functions
-local function get(session: auth.apikey_session | auth.oauth2_session, subject: identity): user_data
-	return auth.request_json(session, `cloud/v2/users/{subject.user_id}`, 'GET')
+local function get(session: auth.apikey_session | auth.oauth2_session, subject: identity)
+	return auth.request_json<<user_data>>(session, 'GET', `cloud/v2/users/{subject.user_id}`)
 end
 
-local function list_inventory(
-	session: auth.apikey_session | auth.oauth2_session,
-	subject: identity,
-	query: page_query?
-): json
-	local path = `cloud/v2/users/{subject.user_id}/inventory-items`
-	return auth.request_json(session, path, 'GET', nil, query)
+local function list_inventory(session: auth.apikey_session | auth.oauth2_session, subject: identity, query: page_query?)
+	return auth.request_json<<json>>(session, 'GET', `cloud/v2/users/{subject.user_id}/inventory-items`, query)
 end
 
 local function send_notification(
 	session: auth.apikey_session | auth.oauth2_session,
 	subject: identity,
 	notification: notification
-): notification
-	return auth.request_json(session, `cloud/v2/users/{subject.user_id}/notifications`, 'POST', notification)
+)
+	local path = `cloud/v2/users/{subject.user_id}/notifications`
+	return auth.request_json<<notification>>(session, 'POST', path, nil, notification)
 end
 
 local function get_subscription(
 	session: auth.apikey_session | auth.oauth2_session,
 	subject: subscription_identity,
 	view: string?
-): subscription
+)
 	local path =
 		`cloud/v2/universes/{subject.universe_id}/subscription-products/{subject.subscription_product_id}/subscriptions/{subject.subscription_id}`
-	return auth.request_json(session, path, 'GET', nil, { view = view })
+	return auth.request_json<<subscription>>(session, 'GET', path, { view = view })
 end
 
 -- module
