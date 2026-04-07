@@ -89,15 +89,15 @@ local function create(session: auth.apikey_session, subject: place.identity | pl
 		then `cloud/v2/universes/{subject.universe_id}/places/{subject.place_id}/versions/{(subject :: any).version}/luau-execution-session-tasks`
 		else `cloud/v2/universes/{subject.universe_id}/places/{subject.place_id}/luau-execution-session-tasks`
 
-	return auth.request_json<<pending_task>>(session, 'POST', path, task)
+	return auth.request_json(session, 'POST', path, task) :: auth.http_result<pending_task>
 end
 
 local function get(session: auth.apikey_session, subject: identity)
-	return auth.request_json<<task>>(session, 'GET', `cloud/v2/{subject.path}`)
+	return auth.request_json(session, 'GET', `cloud/v2/{subject.path}`) :: auth.http_result<task>
 end
 
 local function list(session: auth.apikey_session, subject: identity, query: query)
-	return auth.request_json<<response>>(session, 'GET', `cloud/v2/{subject.path}/logs`, query)
+	return auth.request_json(session, 'GET', `cloud/v2/{subject.path}/logs`, query) :: auth.http_result<response>
 end
 
 -- module

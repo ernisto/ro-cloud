@@ -35,19 +35,19 @@ export type pass_page = {
 -- functions
 local function create(session: auth.session, universe_id: number, data: pass_data)
 	local path = `game-passes/v1/universes/{universe_id}/game-passes`
-	return auth.request_json<<pass_info>>(session, 'POST', path, nil, auth.form(data))
+	return auth.request_json(session, 'POST', path, nil, auth.form(data)) :: auth.http_result<pass_info>
 end
 local function update(session: auth.session, pass: identity, data: pass_patch)
 	local path = `game-passes/v1/universes/{pass.universe_id}/game-passes/{pass.pass_id}`
-	return auth.request_json<<nil>>(session, 'PATCH', path, nil, auth.form(data))
+	return auth.request_json(session, 'PATCH', path, nil, auth.form(data)) :: auth.http_result<nil>
 end
 local function get(session: auth.session, pass: identity)
 	local path = `game-passes/v1/universes/{pass.universe_id}/game-passes/{pass.pass_id}/creator`
-	return auth.request_json<<pass_info>>(session, 'GET', path)
+	return auth.request_json(session, 'GET', path) :: auth.http_result<pass_info>
 end
 local function list(session: auth.session, subject: universe.identity, query: page_query?)
 	local path = `game-passes/v1/universes/{subject.universe_id}/game-passes/creator`
-	return auth.request_json<<pass_page>>(session, 'GET', path, query)
+	return auth.request_json(session, 'GET', path, query) :: auth.http_result<pass_page>
 end
 
 -- module

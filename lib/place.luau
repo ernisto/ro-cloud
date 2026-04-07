@@ -49,28 +49,40 @@ end
 
 local function get_info(session: auth.apikey_session | auth.oauth2_session, subject: identity)
 	local path = `cloud/v2/universes/{subject.universe_id}/places/{subject.place_id}`
-	return auth.request_json<<info>>(session, 'GET', path)
+	return auth.request_json(session, 'GET', path) :: auth.http_result<info>
 end
 
 local function update_info(session: auth.apikey_session | auth.oauth2_session, subject: identity, patch: info_patch)
 	local path = `cloud/v2/universes/{subject.universe_id}/places/{subject.place_id}`
-	return auth.request_json<<info>>(session, 'PATCH', path, { updateMask = auth.mask_from(patch) }, patch)
+	return auth.request_json(
+			session,
+			'PATCH',
+			path,
+			{ updateMask = auth.mask_from(patch) },
+			patch
+		) :: auth.http_result<info>
 end
 
 local function get_instance(session: auth.apikey_session, subject: instance_identity)
 	local path = `cloud/v2/universes/{subject.universe_id}/places/{subject.place_id}/instances/{subject.instance_id}`
-	return auth.request_json<<json>>(session, 'GET', path)
+	return auth.request_json(session, 'GET', path) :: auth.http_result<json>
 end
 
 local function update_instance(session: auth.apikey_session, subject: instance_identity, data: instance)
 	local path = `cloud/v2/universes/{subject.universe_id}/places/{subject.place_id}/instances/{subject.instance_id}`
-	return auth.request_json<<json>>(session, 'PATCH', path, { updateMask = auth.mask_from(data) }, data)
+	return auth.request_json(
+			session,
+			'PATCH',
+			path,
+			{ updateMask = auth.mask_from(data) },
+			data
+		) :: auth.http_result<json>
 end
 
 local function list_instance_children(session: auth.apikey_session, subject: instance_identity, query: page_query?)
 	local path =
 		`cloud/v2/universes/{subject.universe_id}/places/{subject.place_id}/instances/{subject.instance_id}:listChildren`
-	return auth.request_json<<json>>(session, 'GET', path, query)
+	return auth.request_json(session, 'GET', path, query) :: auth.http_result<json>
 end
 
 -- module

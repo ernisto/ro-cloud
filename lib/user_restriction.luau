@@ -48,7 +48,7 @@ local function list(
 		then `cloud/v2/universes/{subject.universe_id}/places/{(subject :: any).place_id}/user-restrictions`
 		else `cloud/v2/universes/{subject.universe_id}/user-restrictions`
 
-	return auth.request_json<<json>>(session, 'GET', path, query)
+	return auth.request_json(session, 'GET', path, query) :: auth.http_result<json>
 end
 
 local function get(
@@ -59,7 +59,7 @@ local function get(
 		then `cloud/v2/universes/{subject.universe_id}/places/{(subject :: any).place_id}/user-restrictions/{subject.user_restriction_id}`
 		else `cloud/v2/universes/{subject.universe_id}/user-restrictions/{subject.user_restriction_id}`
 
-	return auth.request_json<<restriction>>(session, 'GET', path)
+	return auth.request_json(session, 'GET', path) :: auth.http_result<restriction>
 end
 
 local function update(
@@ -73,7 +73,7 @@ local function update(
 		else `cloud/v2/universes/{subject.universe_id}/user-restrictions/{subject.user_restriction_id}`
 
 	local query = { updateMask = auth.mask_from(data), ['idempotencyKey.key'] = idempotency_key }
-	return auth.request_json<<restriction>>(session, 'PATCH', path, query, data)
+	return auth.request_json(session, 'PATCH', path, query, data) :: auth.http_result<restriction>
 end
 
 local function list_logs(

@@ -90,38 +90,61 @@ local function update(
 )
 	local path = `assets/v1/assets/{subject.asset_id}`
 	local data = auth.form { request = serde.encode('json', asset), fileContent = content }
-	return auth.request_json<<asset_operation>>(session, 'PATCH', path, { updateMask = auth.mask_from(asset) }, data)
+	return auth.request_json<<asset_operation>>(
+			session,
+			'PATCH',
+			path,
+			{ updateMask = auth.mask_from(asset) },
+			data
+		) :: auth.http_result<asset_operation>
 end
 
 local function get(session: auth.apikey_session | auth.oauth2_session, subject: identity, read_mask: string?)
 	local path = `assets/v1/assets/{subject.asset_id}`
-	return auth.request_json<<asset_data>>(session, 'GET', path, { readMask = read_mask })
+	return auth.request_json(session, 'GET', path, { readMask = read_mask }) :: auth.http_result<asset_data>
 end
 
 local function archive(session: auth.apikey_session | auth.oauth2_session, subject: identity)
-	return auth.request_json<<asset_data>>(session, 'POST', `assets/v1/assets/{subject.asset_id}:archive`)
+	return auth.request_json(
+			session,
+			'POST',
+			`assets/v1/assets/{subject.asset_id}:archive`
+		) :: auth.http_result<asset_data>
 end
 
 local function restore(session: auth.apikey_session | auth.oauth2_session, subject: identity)
-	return auth.request_json<<asset_data>>(session, 'POST', `assets/v1/assets/{subject.asset_id}:restore`)
+	return auth.request_json(
+			session,
+			'POST',
+			`assets/v1/assets/{subject.asset_id}:restore`
+		) :: auth.http_result<asset_data>
 end
 
 local function rollback(session: auth.apikey_session | auth.oauth2_session, subject: identity, version: number)
 	local path = `assets/v1/assets/{subject.asset_id}/versions:rollback`
 	local data = auth.form { assetVersion = `assets/{subject.asset_id}/versions/{version}` }
-	return auth.request_json<<asset_version>>(session, 'POST', path, nil, data)
+	return auth.request_json<<asset_version>>(session, 'POST', path, nil, data) :: auth.http_result<asset_version>
 end
 
 local function get_version(session: auth.apikey_session | auth.oauth2_session, subject: identity, version: string)
-	return auth.request_json<<asset_version>>(session, 'GET', `assets/v1/assets/{subject.asset_id}/versions/{version}`)
+	return auth.request_json(
+			session,
+			'GET',
+			`assets/v1/assets/{subject.asset_id}/versions/{version}`
+		) :: auth.http_result<asset_version>
 end
 
 local function list_versions(session: auth.apikey_session | auth.oauth2_session, subject: identity, query: page_query?)
-	return auth.request_json<<{}>>(session, 'GET', `assets/v1/assets/{subject.asset_id}/versions`, query)
+	return auth.request_json(
+			session,
+			'GET',
+			`assets/v1/assets/{subject.asset_id}/versions`,
+			query
+		) :: auth.http_result<{}>
 end
 
 local function get_operation(session: auth.apikey_session | auth.oauth2_session, operation_id: string)
-	return auth.request_json<<asset_operation>>(session, 'GET', `assets/v1/operations/{operation_id}`)
+	return auth.request_json(session, 'GET', `assets/v1/operations/{operation_id}`) :: auth.http_result<asset_operation>
 end
 
 -- module

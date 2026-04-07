@@ -38,19 +38,19 @@ export type product_page = {
 -- functions
 local function create(session: auth.session, subject: universe.identity, data: product_create_data)
 	local path = `developer-products/v2/universes/{subject.universe_id}/developer-products`
-	return auth.request_json<<product_data>>(session, 'POST', path, nil, auth.form(data))
+	return auth.request_json(session, 'POST', path, nil, auth.form(data)) :: auth.http_result<product_data>
 end
 local function update(session: auth.session, product: identity, data: product_patch)
 	local path = `developer-products/v2/universes/{product.universe_id}/developer-products/{product.product_id}`
-	return auth.request_json<<nil>>(session, 'PATCH', path, nil, auth.form(data))
+	return auth.request_json(session, 'PATCH', path, nil, auth.form(data)) :: auth.http_result<nil>
 end
 local function get(session: auth.session, product: identity)
 	local path = `developer-products/v2/universes/{product.universe_id}/developer-products/{product.product_id}/creator`
-	return auth.request_json<<product_data>>(session, 'GET', path)
+	return auth.request_json(session, 'GET', path) :: auth.http_result<product_data>
 end
 local function list(session: auth.session, subject: universe.identity, query: page_query?)
 	local path = `developer-products/v2/universes/{subject.universe_id}/developer-products/creator`
-	return auth.request_json<<product_page>>(session, 'GET', path, query)
+	return auth.request_json(session, 'GET', path, query) :: auth.http_result<product_page>
 end
 
 -- module
