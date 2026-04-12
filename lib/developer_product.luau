@@ -4,7 +4,7 @@ local universe = require './universe'
 -- defs
 export type identity = { universe_id: number, product_id: number }
 
-export type product_patch = product_create_data & { name: string?, store_page_enabled: boolean? }
+export type product_patch = product_create_data & { name: string?, storePageEnabled: boolean? }
 export type product_create_data = {
 	name: string,
 	price: number?,
