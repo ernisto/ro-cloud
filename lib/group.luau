@@ -60,28 +60,23 @@ type page_query = { maxPageSize: number?, pageToken: string? }
 
 -- functions
 local function get(session: auth.apikey_session | auth.oauth2_session, subject: identity)
-	return auth.request_json(session, 'GET', `cloud/v2/groups/{subject.group_id}`) :: auth.http_result<group>
+	local url = `https://apis.roblox.com/cloud/v2/groups/{subject.group_id}`
+	return auth.request_json(session, 'GET', url) :: auth.http_result<group>
 end
 
 local function get_shout(session: auth.apikey_session | auth.oauth2_session, subject: identity)
-	return auth.request_json(session, 'GET', `cloud/v2/groups/{subject.group_id}/shout`) :: auth.http_result<shout>
+	local url = `https://apis.roblox.com/cloud/v2/groups/{subject.group_id}/shout`
+	return auth.request_json(session, 'GET', url) :: auth.http_result<shout>
 end
 
 local function list_roles(session: auth.apikey_session | auth.oauth2_session, subject: identity, query: page_query?)
-	return auth.request_json(
-			session,
-			'GET',
-			`cloud/v2/groups/{subject.group_id}/roles`,
-			query
-		) :: auth.http_result<auth.json_object>
+	local url = `https://apis.roblox.com/cloud/v2/groups/{subject.group_id}/roles`
+	return auth.request_json(session, 'GET', url, query) :: auth.http_result<auth.json_object>
 end
 
 local function get_role(session: auth.apikey_session | auth.oauth2_session, subject: role_identity)
-	return auth.request_json(
-			session,
-			'GET',
-			`cloud/v2/groups/{subject.group_id}/roles/{subject.role_id}`
-		) :: auth.http_result<role>
+	local url = `https://apis.roblox.com/cloud/v2/groups/{subject.group_id}/roles/{subject.role_id}`
+	return auth.request_json(session, 'GET', url) :: auth.http_result<role>
 end
 
 local function list_memberships(
@@ -89,8 +84,8 @@ local function list_memberships(
 	subject: identity,
 	query: page_query?
 )
-	local path = `cloud/v2/groups/{subject.group_id}/memberships`
-	return auth.request_json(session, 'GET', path, query) :: auth.http_result<auth.json_object>
+	local url = `https://apis.roblox.com/cloud/v2/groups/{subject.group_id}/memberships`
+	return auth.request_json(session, 'GET', url, query) :: auth.http_result<auth.json_object>
 end
 
 local function update_membership(
@@ -98,8 +93,8 @@ local function update_membership(
 	subject: membership_identity,
 	data: membership
 )
-	local path = `cloud/v2/groups/{subject.group_id}/memberships/{subject.membership_id}`
-	return auth.request_json(session, 'PATCH', path, nil, data) :: auth.http_result<membership>
+	local url = `https://apis.roblox.com/cloud/v2/groups/{subject.group_id}/memberships/{subject.membership_id}`
+	return auth.request_json(session, 'PATCH', url, nil, data) :: auth.http_result<membership>
 end
 
 local function list_join_requests(
@@ -107,18 +102,20 @@ local function list_join_requests(
 	subject: identity,
 	query: page_query?
 )
-	local path = `cloud/v2/groups/{subject.group_id}/join-requests`
-	return auth.request_json(session, 'GET', path, query) :: auth.http_result<auth.json_object>
+	local url = `https://apis.roblox.com/cloud/v2/groups/{subject.group_id}/join-requests`
+	return auth.request_json(session, 'GET', url, query) :: auth.http_result<auth.json_object>
 end
 
 local function accept_join_request(session: auth.apikey_session | auth.oauth2_session, subject: join_request_identity)
-	local path = `cloud/v2/groups/{subject.group_id}/join-requests/{subject.join_request_id}:accept`
-	return auth.request_json(session, 'POST', path) :: auth.http_result<nil>
+	local url =
+		`https://apis.roblox.com/cloud/v2/groups/{subject.group_id}/join-requests/{subject.join_request_id}:accept`
+	return auth.request_json(session, 'POST', url) :: auth.http_result<nil>
 end
 
 local function decline_join_request(session: auth.apikey_session | auth.oauth2_session, subject: join_request_identity)
-	local path = `cloud/v2/groups/{subject.group_id}/join-requests/{subject.join_request_id}:decline`
-	return auth.request_json(session, 'POST', path) :: auth.http_result<nil>
+	local url =
+		`https://apis.roblox.com/cloud/v2/groups/{subject.group_id}/join-requests/{subject.join_request_id}:decline`
+	return auth.request_json(session, 'POST', url) :: auth.http_result<nil>
 end
 
 -- module

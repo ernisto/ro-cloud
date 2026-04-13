@@ -20,8 +20,6 @@ export type http_result<R = nil, E = string> = http_success<R> | http_fail<E>
 export type http_success<R> = { ok: true, code: number, message: string, body: R }
 export type http_fail<E> = { ok: false, code: number, message: string, body: E }
 
-local API_ENDPOINT = 'https://apis.roblox.com/'
-
 -- helpers
 local function mask_from(data: { [string]: any }): string
 	local keys = {}
@@ -50,14 +48,13 @@ end
 local function request_json<R, E>(
 	session: session,
 	method: net.HttpMethod,
-	path: string,
+	url: string,
 	query: query_params?,
 	data: string | {}?,
 	content_type: string?
 ): http_result<R, E>
 	local json_data = if type(data) == 'table' then serde.encode('json', data) else data
-	local response =
-		request(session, method, API_ENDPOINT .. path, query, json_data, content_type or 'application/json')
+	local response = request(session, method, url, query, json_data, content_type or 'application/json')
 	return {
 		body = serde.decode('json', response.body),
 		message = response.statusMessage,

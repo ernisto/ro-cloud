@@ -85,19 +85,22 @@ type list_structured = (
 
 -- functions
 local function create(session: auth.apikey_session, subject: place.identity | place.version_identity, task: task_input)
-	local path = if (subject :: any).version
-		then `cloud/v2/universes/{subject.universe_id}/places/{subject.place_id}/versions/{(subject :: any).version}/luau-execution-session-tasks`
-		else `cloud/v2/universes/{subject.universe_id}/places/{subject.place_id}/luau-execution-session-tasks`
+	local version = (subject :: any).version
+	local url = if version
+		then `https://apis.roblox.com/cloud/v2/universes/{subject.universe_id}/places/{subject.place_id}/versions/{version}/luau-execution-session-tasks`
+		else `https://apis.roblox.com/cloud/v2/universes/{subject.universe_id}/places/{subject.place_id}/luau-execution-session-tasks`
 
-	return auth.request_json(session, 'POST', path, task) :: auth.http_result<pending_task>
+	return auth.request_json(session, 'POST', url, task) :: auth.http_result<pending_task>
 end
 
 local function get(session: auth.apikey_session, subject: identity)
-	return auth.request_json(session, 'GET', `cloud/v2/{subject.path}`) :: auth.http_result<task>
+	local url = `https://apis.roblox.com/cloud/v2/{subject.path}`
+	return auth.request_json(session, 'GET', url) :: auth.http_result<task>
 end
 
 local function list(session: auth.apikey_session, subject: identity, query: query)
-	return auth.request_json(session, 'GET', `cloud/v2/{subject.path}/logs`, query) :: auth.http_result<response>
+	local url = `https://apis.roblox.com/cloud/v2/{subject.path}/logs`
+	return auth.request_json(session, 'GET', url, query) :: auth.http_result<response>
 end
 
 -- module

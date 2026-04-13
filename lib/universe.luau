@@ -72,56 +72,35 @@ export type public_key = { key_id: string?, public_key: string? }
 
 -- functions
 local function get(session: auth.apikey_session | auth.oauth2_session, subject: identity)
-	return auth.request_json(
-			session,
-			'GET',
-			`cloud/v2/universes/{subject.universe_id}`
-		) :: auth.http_result<universe_data>
+	local url = `https://apis.roblox.com/cloud/v2/universes/{subject.universe_id}`
+	return auth.request_json(session, 'GET', url) :: auth.http_result<universe_data>
 end
 local function update(session: auth.apikey_session | auth.oauth2_session, subject: identity, patch: universe_patch)
-	return auth.request_json(
-			session,
-			'PATCH',
-			`cloud/v2/universes/{subject.universe_id}`,
-			patch
-		) :: auth.http_result<universe_data>
+	local url = `https://apis.roblox.com/cloud/v2/universes/{subject.universe_id}`
+	return auth.request_json(session, 'PATCH', url, patch) :: auth.http_result<universe_data>
 end
 local function publish_message(session: auth.apikey_session | auth.oauth2_session, subject: identity, message: message)
-	local path = `cloud/v2/universes/{subject.universe_id}:publishMessage`
-	return auth.request_json(session, 'POST', path, nil, message) :: auth.http_result<nil>
+	local url = `https://apis.roblox.com/cloud/v2/universes/{subject.universe_id}:publishMessage`
+	return auth.request_json(session, 'POST', url, nil, message) :: auth.http_result<nil>
 end
 local function shutdown(session: auth.apikey_session | auth.oauth2_session, subject: identity)
-	return auth.request_json(
-			session,
-			'POST',
-			`cloud/v2/universes/{subject.universe_id}:restartServers`
-		) :: auth.http_result<nil>
+	local url = `https://apis.roblox.com/cloud/v2/universes/{subject.universe_id}:restartServers`
+	return auth.request_json(session, 'POST', url) :: auth.http_result<nil>
 end
 
 local function list_secrets(session: auth.apikey_session | auth.oauth2_session, subject: identity)
-	return auth.request_json(
-			session,
-			'GET',
-			`cloud/v2/universes/{subject.universe_id}/secrets`
-		) :: auth.http_result<json>
+	local url = `https://apis.roblox.com/cloud/v2/universes/{subject.universe_id}/secrets`
+	return auth.request_json(session, 'GET', url) :: auth.http_result<json>
 end
 
 local function create_secret(session: auth.apikey_session | auth.oauth2_session, subject: identity, data: secret_create)
-	return auth.request_json(
-			session,
-			'POST',
-			`cloud/v2/universes/{subject.universe_id}/secrets`,
-			nil,
-			data
-		) :: auth.http_result<secret>
+	local url = `https://apis.roblox.com/cloud/v2/universes/{subject.universe_id}/secrets`
+	return auth.request_json(session, 'POST', url, nil, data) :: auth.http_result<secret>
 end
 
 local function delete_secret(session: auth.apikey_session | auth.oauth2_session, subject: identity, secret_id: string)
-	return auth.request_json(
-			session,
-			'DELETE',
-			`cloud/v2/universes/{subject.universe_id}/secrets/{secret_id}`
-		) :: auth.http_result<nil>
+	local url = `https://apis.roblox.com/cloud/v2/universes/{subject.universe_id}/secrets/{secret_id}`
+	return auth.request_json(session, 'DELETE', url) :: auth.http_result<nil>
 end
 
 local function update_secret(
@@ -130,13 +109,13 @@ local function update_secret(
 	secret_id: string,
 	data: secret_patch
 )
-	local path = `cloud/v2/universes/{subject.universe_id}/secrets/{secret_id}`
-	return auth.request_json(session, 'PATCH', path, nil, data) :: auth.http_result<secret>
+	local url = `https://apis.roblox.com/cloud/v2/universes/{subject.universe_id}/secrets/{secret_id}`
+	return auth.request_json(session, 'PATCH', url, nil, data) :: auth.http_result<secret>
 end
 
 local function get_public_key(session: auth.apikey_session | auth.oauth2_session, subject: identity)
-	local path = `cloud/v2/universes/{subject.universe_id}/secrets/public-key`
-	return auth.request_json(session, 'GET', path) :: auth.http_result<public_key>
+	local url = `https://apis.roblox.com/cloud/v2/universes/{subject.universe_id}/secrets/public-key`
+	return auth.request_json(session, 'GET', url) :: auth.http_result<public_key>
 end
 
 -- module

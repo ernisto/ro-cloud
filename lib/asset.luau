@@ -62,8 +62,8 @@ local function download(
 	session: auth.apikey_session | auth.oauth2_session,
 	subject: identity | version_identity
 ): auth.http_result<buffer, err_response>
-	local path = `asset-delivery-api/v1/assetId/{subject.asset_id}`
-	local location_response = auth.request_json(session, 'GET', path, { version = (subject :: any).version })
+	local url = `https://apis.roblox.com/asset-delivery-api/v1/assetId/{subject.asset_id}`
+	local location_response = auth.request_json(session, 'GET', url, { version = (subject :: any).version })
 
 	if not location_response.ok then return location_response end
 	local response = auth.request(session, 'GET', location_response.body.location)
@@ -79,7 +79,13 @@ end
 
 local function create(session: auth.apikey_session | auth.oauth2_session, asset: asset_data_patch, content: buffer)
 	local data = auth.form { fileContent = content, request = serde.encode('json', asset) }
-	return auth.request_json<<asset_operation>>(session, 'POST', 'assets/v1/assets', nil, data)
+	return auth.request_json(
+			session,
+			'POST',
+			'https://apis.roblox.com/assets/v1/assets',
+			nil,
+			data
+		) :: auth.http_result<asset_operation>
 end
 
 local function update(
@@ -88,63 +94,51 @@ local function update(
 	asset: asset_data_patch,
 	content: buffer?
 )
-	local path = `assets/v1/assets/{subject.asset_id}`
+	local url = `https://apis.roblox.com/assets/v1/assets/{subject.asset_id}`
 	local data = auth.form { request = serde.encode('json', asset), fileContent = content }
-	return auth.request_json<<asset_operation>>(
+	return auth.request_json(
 			session,
 			'PATCH',
-			path,
+			url,
 			{ updateMask = auth.mask_from(asset) },
 			data
 		) :: auth.http_result<asset_operation>
 end
 
 local function get(session: auth.apikey_session | auth.oauth2_session, subject: identity, read_mask: string?)
-	local path = `assets/v1/assets/{subject.asset_id}`
-	return auth.request_json(session, 'GET', path, { readMask = read_mask }) :: auth.http_result<asset_data>
+	local url = `https://apis.roblox.com/assets/v1/assets/{subject.asset_id}`
+	return auth.request_json(session, 'GET', url, { readMask = read_mask }) :: auth.http_result<asset_data>
 end
 
 local function archive(session: auth.apikey_session | auth.oauth2_session, subject: identity)
-	return auth.request_json(
-			session,
-			'POST',
-			`assets/v1/assets/{subject.asset_id}:archive`
-		) :: auth.http_result<asset_data>
+	local url = `https://apis.roblox.com/assets/v1/assets/{subject.asset_id}:archive`
+	return auth.request_json(session, 'POST', url) :: auth.http_result<asset_data>
 end
 
 local function restore(session: auth.apikey_session | auth.oauth2_session, subject: identity)
-	return auth.request_json(
-			session,
-			'POST',
-			`assets/v1/assets/{subject.asset_id}:restore`
-		) :: auth.http_result<asset_data>
+	local url = `https://apis.roblox.com/ssets/v1/assets/{subject.asset_id}:restore`
+	return auth.request_json(session, 'POST', url) :: auth.http_result<asset_data>
 end
 
 local function rollback(session: auth.apikey_session | auth.oauth2_session, subject: identity, version: number)
-	local path = `assets/v1/assets/{subject.asset_id}/versions:rollback`
+	local url = `https://apis.roblox.com/assets/v1/assets/{subject.asset_id}/versions:rollback`
 	local data = auth.form { assetVersion = `assets/{subject.asset_id}/versions/{version}` }
-	return auth.request_json<<asset_version>>(session, 'POST', path, nil, data) :: auth.http_result<asset_version>
+	return auth.request_json(session, 'POST', url, nil, data) :: auth.http_result<asset_version>
 end
 
 local function get_version(session: auth.apikey_session | auth.oauth2_session, subject: identity, version: string)
-	return auth.request_json(
-			session,
-			'GET',
-			`assets/v1/assets/{subject.asset_id}/versions/{version}`
-		) :: auth.http_result<asset_version>
+	local url = `https://apis.roblox.com/assets/v1/assets/{subject.asset_id}/versions/{version}`
+	return auth.request_json(session, 'GET', url) :: auth.http_result<asset_version>
 end
 
 local function list_versions(session: auth.apikey_session | auth.oauth2_session, subject: identity, query: page_query?)
-	return auth.request_json(
-			session,
-			'GET',
-			`assets/v1/assets/{subject.asset_id}/versions`,
-			query
-		) :: auth.http_result<{}>
+	local url = `https://apis.roblox.com/assets/v1/assets/{subject.asset_id}/versions`
+	return auth.request_json(session, 'GET', url, query) :: auth.http_result<{}>
 end
 
 local function get_operation(session: auth.apikey_session | auth.oauth2_session, operation_id: string)
-	return auth.request_json(session, 'GET', `assets/v1/operations/{operation_id}`) :: auth.http_result<asset_operation>
+	local url = `https://apis.roblox.com/assets/v1/operations/{operation_id}`
+	return auth.request_json(session, 'GET', url) :: auth.http_result<asset_operation>
 end
 
 -- module

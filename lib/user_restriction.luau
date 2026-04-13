@@ -44,22 +44,22 @@ local function list(
 	subject: universe_identity | place_identity,
 	query: page_query?
 )
-	local path = if (subject :: any).place_id
-		then `cloud/v2/universes/{subject.universe_id}/places/{(subject :: any).place_id}/user-restrictions`
-		else `cloud/v2/universes/{subject.universe_id}/user-restrictions`
+	local url = if (subject :: any).place_id
+		then `https://apis.roblox.com/cloud/v2/universes/{subject.universe_id}/places/{(subject :: any).place_id}/user-restrictions`
+		else `https://apis.roblox.com/cloud/v2/universes/{subject.universe_id}/user-restrictions`
 
-	return auth.request_json(session, 'GET', path, query) :: auth.http_result<json>
+	return auth.request_json(session, 'GET', url, query) :: auth.http_result<json>
 end
 
 local function get(
 	session: auth.apikey_session | auth.oauth2_session,
 	subject: restriction_identity | place_restriction_identity
 )
-	local path = if (subject :: any).place_id
-		then `cloud/v2/universes/{subject.universe_id}/places/{(subject :: any).place_id}/user-restrictions/{subject.user_restriction_id}`
-		else `cloud/v2/universes/{subject.universe_id}/user-restrictions/{subject.user_restriction_id}`
+	local url = if (subject :: any).place_id
+		then `https://apis.roblox.com/cloud/v2/universes/{subject.universe_id}/places/{(subject :: any).place_id}/user-restrictions/{subject.user_restriction_id}`
+		else `https://apis.roblox.com/cloud/v2/universes/{subject.universe_id}/user-restrictions/{subject.user_restriction_id}`
 
-	return auth.request_json(session, 'GET', path) :: auth.http_result<restriction>
+	return auth.request_json(session, 'GET', url) :: auth.http_result<restriction>
 end
 
 local function update(
@@ -68,12 +68,12 @@ local function update(
 	data: restriction,
 	idempotency_key: string?
 )
-	local path = if (subject :: any).place_id
-		then `cloud/v2/universes/{subject.universe_id}/places/{(subject :: any).place_id}/user-restrictions/{subject.user_restriction_id}`
-		else `cloud/v2/universes/{subject.universe_id}/user-restrictions/{subject.user_restriction_id}`
+	local url = if (subject :: any).place_id
+		then `https://apis.roblox.com/cloud/v2/universes/{subject.universe_id}/places/{(subject :: any).place_id}/user-restrictions/{subject.user_restriction_id}`
+		else `https://apis.roblox.com/cloud/v2/universes/{subject.universe_id}/user-restrictions/{subject.user_restriction_id}`
 
 	local query = { updateMask = auth.mask_from(data), ['idempotencyKey.key'] = idempotency_key }
-	return auth.request_json(session, 'PATCH', path, query, data) :: auth.http_result<restriction>
+	return auth.request_json(session, 'PATCH', url, query, data) :: auth.http_result<restriction>
 end
 
 local function list_logs(
@@ -81,8 +81,8 @@ local function list_logs(
 	subject: universe_identity,
 	query: page_query?
 ): json
-	local path = `cloud/v2/universes/{subject.universe_id}/user-restrictions:listLogs`
-	return auth.request_json(session, 'GET', path, query)
+	local url = `https://apis.roblox.com/cloud/v2/universes/{subject.universe_id}/user-restrictions:listLogs`
+	return auth.request_json(session, 'GET', url, query)
 end
 
 -- module

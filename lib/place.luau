@@ -1,6 +1,5 @@
 local asset = require './asset'
 local auth = require './auth'
-local serde = require '@lune/serde'
 type json = auth.json_object
 
 -- defs
@@ -28,17 +27,16 @@ type page_query = { maxPageSize: number?, pageToken: string? }
 -- functions
 local function upload(session: auth.apikey_session, subject: identity, file: buffer, do_publish: boolean?)
 	local version_type = if do_publish then 'Published' else 'Saved'
-	local path = `universes/v1/{subject.universe_id}/places/{subject.place_id}/versions?versionType={version_type}`
-
-	local response = auth.request(session, 'POST', path, nil, file, 'application/octet-stream')
-	local result: auth.http_result<{ versionNumber: number }> = {
-		body = serde.decode('json', response.body),
-		message = response.statusMessage,
-		headers = response.headers,
-		code = response.statusCode,
-		ok = response.ok,
-	} :: any
-	return result
+	local url =
+		`https://apis.roblox.com/universes/v1/{subject.universe_id}/places/{subject.place_id}/versions?versionType={version_type}`
+	return auth.request_json(
+			session,
+			'POST',
+			url,
+			nil,
+			file,
+			'application/octet-stream'
+		) :: auth.http_result<{ versionNumber: number }>
 end
 local function download(
 	session: auth.apikey_session | auth.oauth2_session,
@@ -48,41 +46,43 @@ local function download(
 end
 
 local function get_info(session: auth.apikey_session | auth.oauth2_session, subject: identity)
-	local path = `cloud/v2/universes/{subject.universe_id}/places/{subject.place_id}`
-	return auth.request_json(session, 'GET', path) :: auth.http_result<info>
+	local url = `https://apis.roblox.com/cloud/v2/universes/{subject.universe_id}/places/{subject.place_id}`
+	return auth.request_json(session, 'GET', url) :: auth.http_result<info>
 end
 
 local function update_info(session: auth.apikey_session | auth.oauth2_session, subject: identity, patch: info_patch)
-	local path = `cloud/v2/universes/{subject.universe_id}/places/{subject.place_id}`
+	local url = `https://apis.roblox.com/cloud/v2/universes/{subject.universe_id}/places/{subject.place_id}`
 	return auth.request_json(
 			session,
 			'PATCH',
-			path,
+			url,
 			{ updateMask = auth.mask_from(patch) },
 			patch
 		) :: auth.http_result<info>
 end
 
 local function get_instance(session: auth.apikey_session, subject: instance_identity)
-	local path = `cloud/v2/universes/{subject.universe_id}/places/{subject.place_id}/instances/{subject.instance_id}`
-	return auth.request_json(session, 'GET', path) :: auth.http_result<json>
+	local url =
+		`https://apis.roblox.com/cloud/v2/universes/{subject.universe_id}/places/{subject.place_id}/instances/{subject.instance_id}`
+	return auth.request_json(session, 'GET', url) :: auth.http_result<json>
 end
 
 local function update_instance(session: auth.apikey_session, subject: instance_identity, data: instance)
-	local path = `cloud/v2/universes/{subject.universe_id}/places/{subject.place_id}/instances/{subject.instance_id}`
+	local url =
+		`https://apis.roblox.com/cloud/v2/universes/{subject.universe_id}/places/{subject.place_id}/instances/{subject.instance_id}`
 	return auth.request_json(
 			session,
 			'PATCH',
-			path,
+			url,
 			{ updateMask = auth.mask_from(data) },
 			data
 		) :: auth.http_result<json>
 end
 
 local function list_instance_children(session: auth.apikey_session, subject: instance_identity, query: page_query?)
-	local path =
-		`cloud/v2/universes/{subject.universe_id}/places/{subject.place_id}/instances/{subject.instance_id}:listChildren`
-	return auth.request_json(session, 'GET', path, query) :: auth.http_result<json>
+	local url =
+		`https://apis.roblox.com/cloud/v2/universes/{subject.universe_id}/places/{subject.place_id}/instances/{subject.instance_id}:listChildren`
+	return auth.request_json(session, 'GET', url, query) :: auth.http_result<json>
 end
 
 -- module

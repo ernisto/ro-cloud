@@ -32,61 +32,78 @@ export type ordered_entry = { path: string?, value: number?, id: string? }
 type page_query = { maxPageSize: number?, pageToken: string?, filter: string? }
 
 -- helpers
-local function store_path(subject: store_identity)
-	local path = `cloud/v2/universes/{subject.universe_id}/data-stores/{subject.data_store_id}`
+local function store_path(subject: store_identity | entry_identity)
+	local url = `https://apis.roblox.com/cloud/v2/universes/{subject.universe_id}/data-stores/{subject.data_store_id}`
 
 	local scope = (subject :: any).scope_id
-	return if scope then `{path}/scopes/{scope}` else path
+	if scope then
+		url ..= `/scopes/{scope}`
+	end
+
+	local entry = (subject :: any).entry_id
+	if entry then
+		url ..= `entries/{entry}`
+	end
+
+	return url
+end
+local function ordered_store_path(subject: ordered_store_identity | ordered_entry_identity)
+	local url =
+		`https://apis.roblox.com/cloud/v2/universes/{subject.universe_id}/ordered-data-stores/{subject.ordered_data_store_id}`
+
+	local scope = (subject :: any).scope_id
+	if scope then
+		url ..= `/scopes/{scope}`
+	end
+
+	local entry = (subject :: any).entry_id
+	if entry then
+		url ..= `entries/{entry}`
+	end
+
+	return url
 end
 
 -- functions
 local function snapshot(session: auth.apikey_session, subject: universe.identity)
-	local path = `cloud/v2/universes/{subject.universe_id}/data-stores:snapshot`
-	return auth.request_json(session, 'POST', path) :: auth.http_result<json>
+	local url = `https://apis.roblox.com/cloud/v2/universes/{subject.universe_id}/data-stores:snapshot`
+	return auth.request_json(session, 'POST', url) :: auth.http_result<json>
 end
 local function list_stores(session: auth.apikey_session, subject: universe.identity, query: page_query?)
-	local path = `cloud/v2/universes/{subject.universe_id}/data-stores`
-	return auth.request_json(session, 'GET', path, query) :: auth.http_result<json>
+	local url = `https://apis.roblox.com/cloud/v2/universes/{subject.universe_id}/data-stores`
+	return auth.request_json(session, 'GET', url, query) :: auth.http_result<json>
 end
 
 local function delete_store(session: auth.apikey_session, subject: store_identity)
-	local path = `cloud/v2/universes/{subject.universe_id}/data-stores/{subject.data_store_id}`
-	return auth.request_json(session, 'DELETE', path) :: auth.http_result<data_store>
+	local url = `{store_path(subject)}`
+	return auth.request_json(session, 'DELETE', url) :: auth.http_result<data_store>
 end
 local function undelete_store(session: auth.apikey_session, subject: store_identity)
-	local path = `cloud/v2/universes/{subject.universe_id}/data-stores/{subject.data_store_id}:undelete`
-	return auth.request_json(session, 'POST', path) :: auth.http_result<data_store>
+	local url = `{store_path(subject)}:undelete`
+	return auth.request_json(session, 'POST', url) :: auth.http_result<data_store>
 end
 
 local function list_entries(session: auth.apikey_session, subject: store_identity, query: page_query?)
-	local path = `{store_path(subject)}/entries`
-	return auth.request_json(session, 'GET', path, query) :: auth.http_result<json>
+	local url = `{store_path(subject)}/entries`
+	return auth.request_json(session, 'GET', url, query) :: auth.http_result<json>
 end
 
 local function create_entry(session: auth.apikey_session, subject: store_identity, id: string?, data: entry)
-	return auth.request_json(
-			session,
-			'POST',
-			`{store_path(subject)}/entries`,
-			{ id = id },
-			data
-		) :: auth.http_result<entry>
+	local url = `{store_path(subject)}/entries`
+	return auth.request_json(session, 'POST', url, { id = id }, data) :: auth.http_result<entry>
 end
 local function get_entry(session: auth.apikey_session, subject: entry_identity)
-	return auth.request_json(
-			session,
-			'GET',
-			`{store_path(subject)}/entries/{subject.entry_id}`
-		) :: auth.http_result<entry>
+	local url = store_path(subject)
+	return auth.request_json(session, 'GET', url) :: auth.http_result<entry>
 end
 local function delete_entry(session: auth.apikey_session, subject: entry_identity)
-	local path = `{store_path(subject)}/entries/{subject.entry_id}`
-	return auth.request_json(session, 'DELETE', path) :: auth.http_result<nil>
+	local url = store_path(subject)
+	return auth.request_json(session, 'DELETE', url) :: auth.http_result<nil>
 end
 
 local function update_entry(session: auth.apikey_session, subject: entry_identity, data: entry, allow_missing: boolean?)
-	local path = `{store_path(subject)}/entries/{subject.entry_id}`
-	return auth.request_json(session, 'PATCH', path, { allowMissing = true }, data) :: auth.http_result<entry>
+	local url = store_path(subject)
+	return auth.request_json(session, 'PATCH', url, { allowMissing = true }, data) :: auth.http_result<entry>
 end
 local function increment_entry(
 	session: auth.apikey_session,
@@ -95,14 +112,14 @@ local function increment_entry(
 	users: { string }?,
 	attributes: any?
 )
-	local path = `{store_path(subject)}/entries/{subject.entry_id}:increment`
+	local url = `{store_path(subject)}:increment`
 	local data = { amount = amount, users = users, attributes = attributes }
-	return auth.request_json(session, 'POST', path, nil, data) :: auth.http_result<entry>
+	return auth.request_json(session, 'POST', url, nil, data) :: auth.http_result<entry>
 end
 
 local function list_entry_revisions(session: auth.apikey_session, subject: entry_identity, query: page_query?): json
-	local path = `{store_path(subject)}/entries/{subject.entry_id}:listRevisions`
-	return auth.request_json(session, 'GET', path, query) :: auth.http_result<json>
+	local url = `{store_path(subject)}:listRevisions`
+	return auth.request_json(session, 'GET', url, query) :: auth.http_result<json>
 end
 
 type ordered_page_query = { maxPageSize: number?, pageToken: string?, orderBy: string?, filter: string? }
@@ -111,9 +128,8 @@ local function list_ordered_entries(
 	subject: ordered_store_identity,
 	query: ordered_page_query?
 )
-	local path =
-		`cloud/v2/universes/{subject.universe_id}/ordered-data-stores/{subject.ordered_data_store_id}/scopes/{subject.scope_id}/entries`
-	return auth.request_json(session, 'GET', path, query) :: auth.http_result<json>
+	local url = `{ordered_store_path(subject)}/entries`
+	return auth.request_json(session, 'GET', url, query) :: auth.http_result<json>
 end
 
 local function create_ordered_entry(
@@ -122,15 +138,13 @@ local function create_ordered_entry(
 	id: string?,
 	value: number
 )
-	local path =
-		`cloud/v2/universes/{subject.universe_id}/ordered-data-stores/{subject.ordered_data_store_id}/scopes/{subject.scope_id}/entries`
-	return auth.request_json(session, 'POST', path, { id = id }, { value = value }) :: auth.http_result<ordered_entry>
+	local url = `{ordered_store_path(subject)}/entries`
+	return auth.request_json(session, 'POST', url, { id = id }, { value = value }) :: auth.http_result<ordered_entry>
 end
 
 local function get_ordered_entry(session: auth.apikey_session, subject: ordered_entry_identity)
-	local path =
-		`cloud/v2/universes/{subject.universe_id}/ordered-data-stores/{subject.ordered_data_store_id}/scopes/{subject.scope_id}/entries/{subject.entry_id}`
-	return auth.request_json(session, 'GET', path) :: auth.http_result<ordered_entry>
+	local url = ordered_store_path(subject)
+	return auth.request_json(session, 'GET', url) :: auth.http_result<ordered_entry>
 end
 
 local function update_ordered_entry(
@@ -140,21 +154,18 @@ local function update_ordered_entry(
 	allow_missing: boolean?
 )
 	local query = { allowMissing = allow_missing }
-	local path =
-		`cloud/v2/universes/{subject.universe_id}/ordered-data-stores/{subject.ordered_data_store_id}/scopes/{subject.scope_id}/entries/{subject.entry_id}`
-	return auth.request_json(session, 'PATCH', path, query, { value = value }) :: auth.http_result<ordered_entry>
+	local url = ordered_store_path(subject)
+	return auth.request_json(session, 'PATCH', url, query, { value = value }) :: auth.http_result<ordered_entry>
 end
 
 local function delete_ordered_entry(session: auth.apikey_session, subject: ordered_entry_identity)
-	local path =
-		`cloud/v2/universes/{subject.universe_id}/ordered-data-stores/{subject.ordered_data_store_id}/scopes/{subject.scope_id}/entries/{subject.entry_id}`
-	return auth.request_json(session, 'DELETE', path) :: auth.http_result<nil>
+	local url = ordered_store_path(subject)
+	return auth.request_json(session, 'DELETE', url) :: auth.http_result<nil>
 end
 
 local function increment_ordered_entry(session: auth.apikey_session, subject: ordered_entry_identity, amount: number)
-	local path =
-		`cloud/v2/universes/{subject.universe_id}/ordered-data-stores/{subject.ordered_data_store_id}/scopes/{subject.scope_id}/entries/{subject.entry_id}:increment`
-	return auth.request_json(session, 'POST', path, nil, { amount = amount }) :: auth.http_result<ordered_entry>
+	local url = `{ordered_store_path(subject)}:increment`
+	return auth.request_json(session, 'POST', url, nil, { amount = amount }) :: auth.http_result<ordered_entry>
 end
 
 -- module
@@ -170,6 +181,7 @@ return table.freeze {
 	delete_entry = delete_entry,
 	increment_entry = increment_entry,
 	list_entry_revisions = list_entry_revisions,
+
 	list_ordered_entries = list_ordered_entries,
 	create_ordered_entry = create_ordered_entry,
 	get_ordered_entry = get_ordered_entry,

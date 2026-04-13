@@ -1,5 +1,4 @@
 local auth = require '@lib/auth'
-local serde = require '@lune/serde'
 
 type date = string
 
@@ -23,28 +22,18 @@ type page<Element> = { nextPageToken: string?, prevPageToken: string, data: { El
 
 -- functions
 local function get_user_universes(session: auth.cookie_session, query: page_query?)
-	local res = auth.request(session, 'GET', `https://develop.roblox.com/v1/user/universes`, query)
-	local body = serde.decode('json', res.body)
-
-	assert(res.ok, res.statusMessage)
-	return body
+	local url = `https://develop.roblox.com/v1/user/universes`
+	return auth.request_json(session, 'GET', url, query) :: auth.http_result<page<dev_universe>>
 end
 
 local function get_group_universes(session: auth.cookie_session, subject: { group_id: number }, query: page_query?)
-	local path = `https://develop.roblox.com/v1/groups/{subject.group_id}/universes`
-	local res = auth.request(session, 'GET', path, query)
-	local body = serde.decode('json', res.body)
-
-	assert(res.ok, res.statusMessage)
-	return body
+	local url = `https://develop.roblox.com/v1/groups/{subject.group_id}/universes`
+	return auth.request_json(session, 'GET', url, query) :: auth.http_result<page<dev_universe>>
 end
 
 local function get_groups(session: auth.cookie_session)
-	local res = auth.request(session, 'GET', `https://develop.roblox.com/v1/user/groups/canmanagegamesoritems`)
-	local body = serde.decode('json', res.body)
-
-	assert(res.ok, res.statusMessage)
-	return body.data
+	local url = `https://develop.roblox.com/v1/user/groups/canmanagegamesoritems`
+	return auth.request_json(session, 'GET', url) :: auth.http_result<{ dev_group }>
 end
 
 -- module
