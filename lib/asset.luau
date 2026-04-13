@@ -52,17 +52,20 @@ export type asset_operation =
 	| { path: string, done: false, error: operation_error }
 	| { path: string, done: true, response: asset_data }
 
+type download_res = { location: string, errors: nil } | { location: nil, errors: any }
+
 -- functions
 local function download(
 	session: auth.apikey_session | auth.oauth2_session,
 	subject: identity & { version: number? }
 ): buffer
 	local url = `asset-delivery-api/v1/assetId/{subject.asset_id}`
-	local data: { location: string } = auth.request_json(session, url, 'GET', nil, { version = subject.version }) :: any
+	local data: download_res = auth.request_json(session, url, 'GET', nil, { version = subject.version })
 
+	if data.location == nil then error(`Http error [{data.errors[1].code}]: {data.errors[1].message}`) end
 	local response = auth.request(session, data.location, 'GET')
-	assert(response.ok, `error [{response.statusCode}]: {response.statusMessage}`)
 
+	assert(response.ok, `error [{response.statusCode}]: {response.statusMessage}`)
 	return buffer.fromstring(response.body)
 end
 

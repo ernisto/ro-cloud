@@ -3,8 +3,8 @@ local cloud = require '@lib'
 local env = require '@utils/env'
 local fs = require '@lune/fs'
 
-assert(cli.str(1) == 'place')
-assert(cli.str(2) == 'download')
+assert(cli.str(1) == 'place', `no command '{cli.str(1)}' found\navailable commands: 'place'`)
+assert(cli.str(2) == 'download', `no sub-command '{cli.str(2)}' found\navailable sub commands: 'download'`)
 
 local place_id = cli.num(3) or error(`place id <number> arg missing`)
 local output = cli.str 'output' or error '--output <file_path> arg missing'
