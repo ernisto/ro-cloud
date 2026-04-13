@@ -66,6 +66,10 @@ export type user_inventory_item = user_mod.inventory_item
 export type user_notification = user_mod.notification
 export type user_subscription = user_mod.subscription
 
+local develop = require '@self/develop'
+export type dev_universe = develop.dev_group
+export type dev_group = develop.dev_group
+
 return table.freeze {
 	auth = auth,
 	universe = universe,
@@ -78,5 +82,6 @@ return table.freeze {
 	user = user_mod,
 	luau_task_exec = luau_task_exec,
 	product = developer_product,
+	develop = develop,
 	pass = pass,
 }

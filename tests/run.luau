@@ -4,6 +4,7 @@ local runner = require './runner'
 
 local config = {
 	api_key = env.str 'API_KEY',
+	cookie = env.str 'COOKIE',
 	universe_id = 7176734135,
 	place_id = 102181929056899,
 	user_id = 414709355,
@@ -31,6 +32,7 @@ local suites = {
 	{ name = 'user', suite = require './suite/user' },
 	{ name = 'group', suite = require './suite/group' },
 	{ name = 'asset', suite = require './suite/asset' },
+	{ name = 'develop', suite = require './suite/develop' },
 }
 
 for _, entry in suites do

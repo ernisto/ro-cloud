@@ -22,17 +22,20 @@ local API_ENDPOINT = 'https://apis.roblox.com/'
 -- helpers
 local function mask_from(data: { [string]: any }): string
 	local keys = {}
-	for k in data do table.insert(keys, k) end
+	for k in data do
+		table.insert(keys, k)
+	end
 	return table.concat(keys, ',')
 end
 
-local function build_query_string(params: query_params?): string
-	if not params then return '' end
+local function append_query(path: string, query: query_params?): string
+	if not query then return path end
 	local parts = {}
-	for k, v in params do
+
+	for k, v in query do
 		table.insert(parts, `{k}={tostring(v)}`)
 	end
-	return if #parts > 0 then '?' .. table.concat(parts, '&') else ''
+	return path .. if #parts > 0 then '?' .. table.concat(parts, '&') else ''
 end
 
 -- functions
@@ -41,8 +44,10 @@ local function request(
 	path: string,
 	method: net.HttpMethod,
 	content_type: string?,
-	data: string | buffer?
+	data: string | buffer?,
+	query: query_params?
 )
+	path = append_query(path, query)
 	return if (session :: any).api_key
 		then apikey.request(session :: any, path, method, content_type, data)
 		elseif (session :: any).cookie then cookie.request(session :: any, path, method, content_type, data)
@@ -56,11 +61,12 @@ local function request_json(
 	data: {}?,
 	query: query_params?
 ): any -- json, but convertable to any struct
-	local full_path = API_ENDPOINT .. path .. build_query_string(query)
-	local response = request(session, full_path, method, 'application/json', data and serde.encode('json', data))
-	local body = serde.decode('json', response.body)
+	local full_path = API_ENDPOINT .. path
+	local response = request(session, full_path, method, 'application/json', data and serde.encode('json', data), query)
 
+	local body = serde.decode('json', response.body)
 	assert(response.ok, `Request fail [{response.statusCode}]: {response.statusMessage}\n{body and body.message or ''}`)
+
 	return body
 end
 
@@ -73,12 +79,13 @@ local function request_form(session: session, path: string, method: net.HttpMeth
 			f.text(name, value :: any)
 		end
 	end
-	local full_path = API_ENDPOINT .. path .. build_query_string(query)
-	local response = request(session, full_path, method, `multipart/form-data; boundary={f.boundary}`, f.build())
+
+	local full_path = API_ENDPOINT .. path
+	local response = request(session, full_path, method, `multipart/form-data; boundary={f.boundary}`, f.build(), query)
 
 	local body = if response.body:match '^{' then serde.decode('json', response.body) else {}
-
 	assert(response.ok, `Request fail [{response.statusCode}]: {response.statusMessage}\n{body.errorMessage or ''}`)
+
 	return body
 end
 

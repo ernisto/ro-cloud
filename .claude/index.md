@@ -24,6 +24,7 @@
 | `lib/user_restriction.luau` | `restriction_identity` / `place_restriction_identity` | `list`, `get`, `update`, `list_logs` |
 | `lib/group.luau` | `{ group_id }` | `get`, `get_shout`, `list_roles`, `get_role`, `list_memberships`, `update_membership`, `list_join_requests`, `accept_join_request`, `decline_join_request` |
 | `lib/developer_product.luau` | `{ universe_id, product_id }` | (see file) |
+| `lib/develop.luau` | `cookie_session` (no identity) | `get_user_universes`, `get_group_universes`, `get_groups` — uses `develop.roblox.com` API |
 | `lib/game_pass.luau` | `{ pass_id }` | (see file) |
 | `lib/luau_task_exec.luau` | `{ path }` (task path) | `create`, `get`, `wait_for_task`, `create_binary_input`, `get_task_by_path` |
 | `lib/luau_task_exec_log.luau` | — | Log parsing for Luau execution task output |
@@ -64,6 +65,7 @@
 | `tests/suite/user.luau` | Tests `get`, `list_inventory`. Requires: `user_id`. |
 | `tests/suite/group.luau` | Tests `get`, `list_roles`, `list_memberships`. Requires: `group_id`. |
 | `tests/suite/asset.luau` | Tests `get`, `list_versions`. Requires: `asset_id`. |
+| `tests/suite/develop.luau` | Tests `get_user_universes`, `get_groups`, `get_group_universes`. Requires: `COOKIE` env var (skips otherwise). |
 
 ## API endpoint map
 
