@@ -19,5 +19,8 @@ end
 local session = cloud.auth.apikey.login(api_key)
 local content = cloud.place.download(session, { place_id = place_id })
 
+local dir = output:match '(.*)/.+$'
+if dir then fs.writeDir(dir) end
+
 fs.writeFile(output, content)
 return nil
