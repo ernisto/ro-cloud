@@ -1,5 +1,6 @@
 local net = require '@lune/net'
 local roblox = require '@lune/roblox'
+local serde = require '@lune/serde'
 
 -- defs
 export type session = { api_key: nil, cookie: string }
@@ -26,5 +27,13 @@ local function request(
 	return net.request { url = path, method = method, body = data, headers = headers }
 end
 
+type user = { id: number, name: string, displayName: string }
+local function get_user_info(session: session): user
+	local res = request(session, 'https://users.roblox.com/v1/users/authenticated', 'GET')
+	assert(res.ok, res.statusMessage)
+
+	return serde.decode('json', res.body)
+end
+
 -- module
-return table.freeze { login = login, request = request }
+return table.freeze { login = login, request = request, get_user_info = get_user_info }
