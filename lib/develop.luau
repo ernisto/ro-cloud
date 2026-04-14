@@ -18,8 +18,8 @@ export type dev_universe = {
 	privacyType: 'Public' | 'Private' | 'Group',
 }
 
-type page_query = { limit: number?, cursor: string?, sortOrder: 'Asc' | 'Desc', isArchived: boolean? }
-type page<Element> = { nextPageToken: string?, prevPageToken: string, data: { Element } }
+type page_query = { limit: number?, cursor: string?, sortOrder: 'Asc' | 'Desc'?, isArchived: boolean? }
+type page<Element> = { nextPageCursor: string?, prevPageCursor: string, data: { Element } }
 
 -- functions
 local function get_user_universes(session: auth.cookie_session, query: page_query?)
@@ -34,7 +34,7 @@ end
 
 local function get_groups(session: auth.cookie_session)
 	local url = `https://develop.roblox.com/v1/user/groups/canmanagegamesoritems`
-	return auth.request_json(session, 'GET', url) :: auth.http_result<{ dev_group }>
+	return auth.request_json(session, 'GET', url) :: auth.http_result<{ data: { dev_group } }>
 end
 
 -- module
