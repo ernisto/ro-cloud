@@ -64,8 +64,14 @@ local function request_json<R, E>(
 	} :: any
 end
 
+type user = { id: number, name: string, displayName: string }
+local function get_user_info(session: cookie_session)
+	return request_json(session, 'GET', 'https://users.roblox.com/v1/users/authenticated') :: http_result<user>
+end
+
 -- module
 return table.freeze {
+	get_user_info = get_user_info,
 	request_json = request_json,
 	request = request,
 
