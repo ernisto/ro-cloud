@@ -1,4 +1,5 @@
 local auth = require '@lib/auth'
+local group = require '@lib/group'
 
 type date = string
 
@@ -26,7 +27,7 @@ local function get_user_universes(session: auth.cookie_session, query: page_quer
 	return auth.request_json(session, 'GET', url, query) :: auth.http_result<page<dev_universe>>
 end
 
-local function get_group_universes(session: auth.cookie_session, subject: { group_id: number }, query: page_query?)
+local function get_group_universes(session: auth.cookie_session, subject: group.identity, query: page_query?)
 	local url = `https://develop.roblox.com/v1/groups/{subject.group_id}/universes`
 	return auth.request_json(session, 'GET', url, query) :: auth.http_result<page<dev_universe>>
 end
