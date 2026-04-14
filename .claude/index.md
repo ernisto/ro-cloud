@@ -43,6 +43,7 @@
 | File | Purpose |
 |------|---------|
 | `cli/download_place.luau` | Downloads a place file. Args: `<place_id>` `--output <path>` `--api-key <key>` `--cache <seconds>`. |
+| `cli/luau_exec.luau` | Runs a Luau script via the execution session task API and mirrors output to terminal. Args: `<universe_id> <place_id> <script_path>` `--api-key <key>` `--poll-rate <seconds>` `--timeout <s>` `--version <n>`. Polls until terminal state, then prints structured logs with ANSI colors (yellow=WARNING, red=ERROR, cyan=INFO). |
 
 ## docs/
 
