@@ -28,7 +28,7 @@ export type done_task = failed_task | complete_task | cancelled_task
 export type task = pending_task | failed_task | complete_task | cancelled_task
 
 export type identity = { path: string }
-export type task_input = { script: string, timeout: string? }
+export type task_input = { script: string, timeout: number? }
 
 export type binary_input = { path: string?, content: buffer?, size: string? }
 export type create_binary_input_request = { request_id: string? }
@@ -76,12 +76,12 @@ type flat_query = {
 }
 
 type list = list_flat & list_structured
-type list_flat = (session: auth.apikey_session, subject: identity, query: flat_query) -> response_flat
+type list_flat = (session: auth.apikey_session, subject: identity, query: flat_query) -> auth.http_result<response_flat>
 type list_structured = (
 	session: auth.apikey_session,
 	subject: identity,
 	query: structured_query
-) -> response_structured
+) -> auth.http_result<response_structured>
 
 -- functions
 local function create(session: auth.apikey_session, subject: place.identity | place.version_identity, task: task_input)
@@ -90,7 +90,7 @@ local function create(session: auth.apikey_session, subject: place.identity | pl
 		then `https://apis.roblox.com/cloud/v2/universes/{subject.universe_id}/places/{subject.place_id}/versions/{version}/luau-execution-session-tasks`
 		else `https://apis.roblox.com/cloud/v2/universes/{subject.universe_id}/places/{subject.place_id}/luau-execution-session-tasks`
 
-	return auth.request_json(session, 'POST', url, task) :: auth.http_result<pending_task>
+	return auth.request_json(session, 'POST', url, {}, task) :: auth.http_result<pending_task>
 end
 
 local function get(session: auth.apikey_session, subject: identity)
@@ -107,5 +107,5 @@ end
 return table.freeze {
 	create = create,
 	get = get,
-	list_logs = list,
+	list_logs = (list :: any) :: list,
 }
