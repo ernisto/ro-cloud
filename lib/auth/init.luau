@@ -56,7 +56,7 @@ local function request_json<R, E>(
 	local json_data = if type(data) == 'table' then serde.encode('json', data) else data
 	local response = request(session, method, url, query, json_data, content_type or 'application/json')
 	return {
-		body = serde.decode('json', response.body),
+		body = string.match(response.body, '^{') and serde.decode('json', response.body),
 		message = response.statusMessage,
 		headers = response.headers,
 		code = response.statusCode,
