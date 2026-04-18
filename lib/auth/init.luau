@@ -54,14 +54,16 @@ local function request_json<R, E>(
 	content_type: string?
 ): http_result<R, E>
 	local json_data = if type(data) == 'table' then serde.encode('json', data) else data
-	local response = request(session, method, url, query, json_data, content_type or 'application/json')
-	return {
-		body = string.match(response.body, '^{') and serde.decode('json', response.body),
-		message = response.statusMessage,
-		headers = response.headers,
-		code = response.statusCode,
-		ok = response.ok,
-	} :: any
+	local res = request(session, method, url, query, json_data, content_type or 'application/json')
+
+	local body = string.match(res.body, '^{') and serde.decode('json', res.body)
+	local err = type(body) == 'table' and body.errors and body.errors[1]
+
+	local safe_res = if err
+		then { body = body, headers = res.headers, message = err.message, code = err.code, ok = false }
+		else { body = body, headers = res.headers, message = res.statusMessage, code = res.statusCode, ok = res.ok }
+
+	return safe_res :: any
 end
 
 type user = { id: number, name: string, displayName: string }
