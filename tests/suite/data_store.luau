@@ -10,7 +10,10 @@ function suite.run(config: config, runner: runner)
 	local universe = { universe_id = config.universe_id }
 
 	runner.test('list_stores', function()
-		cloud.data_store.list_stores(session, universe)
+		local res = cloud.data_store.list_stores(session, universe, { maxPageSize = 1 })
+		assert(res.ok, `failed: {res.message}`)
+		local list = (res.body :: any).dataStores
+		assert(type(list) == 'table' and #list <= 1, `maxPageSize=1 not honored (got {#list})`)
 	end)
 
 	if not config.data_store_id then
@@ -25,7 +28,10 @@ function suite.run(config: config, runner: runner)
 	}
 
 	runner.test('list_entries', function()
-		cloud.data_store.list_entries(session, store)
+		local res = cloud.data_store.list_entries(session, store, { maxPageSize = 1 })
+		assert(res.ok, `failed: {res.message}`)
+		local list = (res.body :: any).dataStoreEntries
+		assert(type(list) == 'table' and #list <= 1, `maxPageSize=1 not honored (got {#list})`)
 	end)
 end
 

@@ -22,11 +22,17 @@ function suite.run(config: config, runner: runner)
 	end)
 
 	runner.test('list_roles', function()
-		cloud.group.list_roles(session, id)
+		local res = cloud.group.list_roles(session, id, { maxPageSize = 1 })
+		assert(res.ok, `failed: {res.message}`)
+		local list = (res.body :: any).groupRoles
+		assert(type(list) == 'table' and #list <= 1, `maxPageSize=1 not honored (got {#list})`)
 	end)
 
 	runner.test('list_memberships', function()
-		cloud.group.list_memberships(session, id)
+		local res = cloud.group.list_memberships(session, id, { maxPageSize = 1 })
+		assert(res.ok, `failed: {res.message}`)
+		local list = (res.body :: any).groupMemberships
+		assert(type(list) == 'table' and #list <= 1, `maxPageSize=1 not honored (got {#list})`)
 	end)
 end
 

@@ -21,7 +21,10 @@ function suite.run(config: config, runner: runner)
 	end)
 
 	runner.test('list_inventory', function()
-		cloud.user.list_inventory(session, id)
+		local res = cloud.user.list_inventory(session, id, { maxPageSize = 1 })
+		assert(res.ok, `failed: {res.message}`)
+		local list = (res.body :: any).inventoryItems
+		assert(type(list) == 'table' and #list <= 1, `maxPageSize=1 not honored (got {#list})`)
 	end)
 end
 

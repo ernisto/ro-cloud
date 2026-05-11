@@ -21,7 +21,10 @@ function suite.run(config: config, runner: runner)
 	end)
 
 	runner.test('list_versions', function()
-		cloud.asset.list_versions(session, id)
+		local res = cloud.asset.list_versions(session, id, { maxPageSize = 1 })
+		assert(res.ok, `failed: {res.message}`)
+		local list = (res.body :: any).assetVersions
+		assert(type(list) == 'table' and #list <= 1, `maxPageSize=1 not honored (got {#list})`)
 	end)
 end
 
