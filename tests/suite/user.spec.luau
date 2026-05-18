@@ -1,31 +1,19 @@
 local cloud = require '@lib'
+local config = require '../config'
 
-type config = { api_key: string, user_id: number? }
-type runner = typeof(require '../runner')
+local id = { user_id = config.user_id }
+local run = {}
 
-local suite = {}
-
-function suite.run(config: config, runner: runner)
-	if not config.user_id then
-		runner.skip('get', 'USER_ID not set')
-		runner.skip('list_inventory', 'USER_ID not set')
-		return
-	end
-
-	local session = cloud.auth.apikey.login(config.api_key)
-	local id = { user_id = config.user_id :: number }
-
-	runner.test('get', function()
-		local data = cloud.user.get(session, id)
-		assert(data.ok and data.body.path, 'missing path')
-	end)
-
-	runner.test('list_inventory', function()
-		local res = cloud.user.list_inventory(session, id, { maxPageSize = 1 })
-		assert(res.ok, `failed: {res.message}`)
-		local list = (res.body :: any).inventoryItems
-		assert(type(list) == 'table' and #list <= 1, `maxPageSize=1 not honored (got {#list})`)
-	end)
+function run.get()
+	local data = cloud.user.get(config.session, id)
+	assert(data.ok and data.body.path, 'missing path')
 end
 
-return suite
+function run.list_inventory()
+	local res = cloud.user.list_inventory(config.session, id, { maxPageSize = 1 })
+	assert(res.ok, `failed: {res.message}`)
+	local list = (res.body :: any).inventoryItems
+	assert(type(list) == 'table' and #list <= 1, `maxPageSize=1 not honored (got {#list})`)
+end
+
+return run

@@ -1,31 +1,19 @@
 local cloud = require '@lib'
+local config = require '../config'
 
-type config = { api_key: string, asset_id: number? }
-type runner = typeof(require '../runner')
+local id = { asset_id = config.asset_id }
+local run = {}
 
-local suite = {}
-
-function suite.run(config: config, runner: runner)
-	if not config.asset_id then
-		runner.skip('get', 'ASSET_ID not set')
-		runner.skip('list_versions', 'ASSET_ID not set')
-		return
-	end
-
-	local session = cloud.auth.apikey.login(config.api_key)
-	local id = { asset_id = config.asset_id :: number }
-
-	runner.test('get', function()
-		local data = cloud.asset.get(session, id)
-		assert(data.ok and data.body.assetType, 'missing assetType')
-	end)
-
-	runner.test('list_versions', function()
-		local res = cloud.asset.list_versions(session, id, { maxPageSize = 1 })
-		assert(res.ok, `failed: {res.message}`)
-		local list = (res.body :: any).assetVersions
-		assert(type(list) == 'table' and #list <= 1, `maxPageSize=1 not honored (got {#list})`)
-	end)
+function run.get()
+	local data = cloud.asset.get(config.session, id)
+	assert(data.ok and data.body.assetType, 'missing assetType')
 end
 
-return suite
+function run.list_versions()
+	local res = cloud.asset.list_versions(config.session, id, { maxPageSize = 1 })
+	assert(res.ok, `failed: {res.message}`)
+	local list = (res.body :: any).assetVersions
+	assert(type(list) == 'table' and #list <= 1, `maxPageSize=1 not honored (got {#list})`)
+end
+
+return run

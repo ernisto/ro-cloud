@@ -1,32 +1,20 @@
 local cloud = require '@lib'
+local config = require '../config'
 
-type config = { api_key: string, universe_id: number, product_id: number? }
-type runner = typeof(require '../runner')
+local universe = { universe_id = config.universe_id }
+local id = { universe_id = config.universe_id, product_id = config.product_id }
+local run = {}
 
-local suite = {}
-
-function suite.run(config: config, runner: runner)
-	local session = cloud.auth.apikey.login(config.api_key)
-	local universe = { universe_id = config.universe_id }
-
-	runner.test('list', function()
-		local res = cloud.product.list(session, universe, { pageSize = 1 })
-		assert(res.ok, `failed: {res.message}`)
-		local list = res.body.developerProducts
-		assert(type(list) == 'table' and #list <= 1, `maxPageSize=1 not honored (got {#list})`)
-	end)
-
-	if not config.product_id then
-		runner.skip('get', 'PRODUCT_ID not set')
-		return
-	end
-
-	local id = { universe_id = config.universe_id, product_id = config.product_id :: number }
-
-	runner.test('get', function()
-		local data = cloud.product.get(session, id)
-		assert(data.ok and data.body.name, 'missing name')
-	end)
+function run.list()
+	local res = cloud.product.list(config.session, universe, { pageSize = 1 })
+	assert(res.ok, `failed: {res.message}`)
+	local list = res.body.developerProducts
+	assert(type(list) == 'table' and #list <= 1, `maxPageSize=1 not honored (got {#list})`)
 end
 
-return suite
+function run.get()
+	local data = cloud.product.get(config.session, id)
+	assert(data.ok and data.body.name, 'missing name')
+end
+
+return run
