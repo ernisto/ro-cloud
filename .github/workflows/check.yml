@@ -1,0 +1,46 @@
+name: Check
+
+concurrency:
+  group: check-${{ github.ref }}
+  cancel-in-progress: true
+
+on:
+  workflow_dispatch:
+  workflow_call:
+  pull_request:
+  push:
+
+jobs:
+  check-format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: JohnnyMorganz/stylua-action@v4
+        with:
+          token: ${{ github.token }}
+          version: 2.5.2
+          args: --config-path stylua.toml --check lib tests
+
+  lint-code:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: CompeyDev/setup-rokit@v0.1.2
+        with:
+          token: ${{ github.token }}
+
+      - name: Lint
+        run: >
+          luau-lsp analyze
+          --base-luaurc .luaurc
+          --ignore **/*_packages/**
+          lib cli utils tests
+
+  unit-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: axiom-co/setup-pesde@b690699ace34169731b6b2a1c93b2008472038a7
+
+      - name: Run tests
+        run: pesde x ernisto/test
