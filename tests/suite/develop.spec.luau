@@ -1,7 +1,7 @@
 local cloud = require '@lib'
 local config = require '../config'
 
-local session = assert(config.cookie_session, 'COOKIE required for develop tests')
+local session = config.cookie_session :: cloud.cookie_session
 local run = {}
 
 function run.get_user_universes()
@@ -23,4 +23,5 @@ function run.get_group_universes()
 	assert(res.ok and type(res.body.data) == 'table', 'expected data.data to be a table')
 end
 
-return run
+if not session then warn(`COOKIE required for develop.spec tests`) end
+return if session then run else { run = {}, skip = run }
