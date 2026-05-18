@@ -10,7 +10,7 @@ function suite.run(config: config, runner: runner)
 	local universe = { universe_id = config.universe_id }
 
 	runner.test('list', function()
-		local res = cloud.product.list(session, universe, { maxPageSize = 1 })
+		local res = cloud.product.list(session, universe, { pageSize = 1 })
 		assert(res.ok, `failed: {res.message}`)
 		local list = res.body.developerProducts
 		assert(type(list) == 'table' and #list <= 1, `maxPageSize=1 not honored (got {#list})`)

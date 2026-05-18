@@ -106,7 +106,7 @@ local function request(
 	assert(not is_session_expired(session), 'Session has expired. Please refresh the token.')
 	local headers: any =
 		{ ['Authorization'] = `{session.token_type} {session.access_token}`, ['Content-Type'] = content_type }
-	return net.request { url = url, method = method, headers = headers, body = body }
+	return net.request { url = url, method = method, headers = headers, body = body, query = query }
 end
 
 -- module

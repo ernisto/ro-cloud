@@ -18,7 +18,7 @@ local function request(
 	content_type: string? -- unknown
 )
 	local headers: any = { ['Content-Type'] = content_type, ['x-api-key'] = session.api_key }
-	return net.request { url = url, method = method, body = body, headers = headers :: any }
+	return net.request { url = url, method = method, body = body, headers = headers, query = query }
 end
 
 -- module

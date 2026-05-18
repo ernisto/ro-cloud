@@ -24,6 +24,10 @@ function suite.run(config: config, runner: runner)
 		local id = { universe_id = config.universe_id, queue_id = config.queue_id :: string }
 		runner.test('read_queue', function()
 			local res = cloud.memory_store.read_queue(session, id, { count = 1 })
+			if res.code == 404 then
+				print(`         skipped query check: queue '{config.queue_id}' not found`)
+				return
+			end
 			assert(res.ok, `failed: {res.message}`)
 			local list = (res.body :: any).items
 			if list then

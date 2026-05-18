@@ -29,7 +29,7 @@ export type product_data = {
 	},
 }
 
-type page_query = { maxPageSize: number?, pageToken: string? }
+type page_query = { pageSize: number?, pageToken: string? }
 export type product_page = {
 	developerProducts: { product_data },
 	nextPageToken: string,
