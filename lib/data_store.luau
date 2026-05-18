@@ -117,7 +117,7 @@ local function increment_entry(
 	return auth.request_json(session, 'POST', url, nil, data) :: auth.http_result<entry>
 end
 
-local function list_entry_revisions(session: auth.apikey_session, subject: entry_identity, query: page_query?): json
+local function list_entry_revisions(session: auth.apikey_session, subject: entry_identity, query: page_query?)
 	local url = `{store_path(subject)}:listRevisions`
 	return auth.request_json(session, 'GET', url, query) :: auth.http_result<json>
 end

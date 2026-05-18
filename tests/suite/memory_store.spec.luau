@@ -30,9 +30,7 @@ function suite.run(config: config, runner: runner)
 			end
 			assert(res.ok, `failed: {res.message}`)
 			local list = (res.body :: any).items
-			if list then
-				assert(type(list) == 'table' and #list <= 1, `count=1 not honored (got {#list})`)
-			end
+			if list then assert(type(list) == 'table' and #list <= 1, `count=1 not honored (got {#list})`) end
 		end)
 	else
 		runner.skip('read_queue', 'QUEUE_ID not set')

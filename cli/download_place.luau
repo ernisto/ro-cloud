@@ -12,7 +12,9 @@ local cache = cli.num 'cache'
 local api_key = cli.str 'api-key' or env.str 'API_KEY' or error 'couldnt get api key'
 
 if cache and fs.isFile(output) then
-	local age = os.time() - fs.metadata(output).modifiedAt.unixTimestamp
+	local modify = fs.metadata(output).modifiedAt
+
+	local age = os.time() - if modify then modify.unixTimestamp else os.time()
 	if age < cache then return nil end
 end
 

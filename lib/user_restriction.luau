@@ -80,7 +80,7 @@ local function list_logs(
 	session: auth.apikey_session | auth.oauth2_session,
 	subject: universe_identity,
 	query: page_query?
-): json
+)
 	local url = `https://apis.roblox.com/cloud/v2/universes/{subject.universe_id}/user-restrictions:listLogs`
 	return auth.request_json(session, 'GET', url, query)
 end

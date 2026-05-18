@@ -41,7 +41,7 @@ jobs:
           --ignore **/*_packages/**
           lib cli utils tests
 
-  unit-tests:
+  automated-tests:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6

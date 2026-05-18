@@ -23,16 +23,16 @@ assert(config.universe_id, 'UNIVERSE_ID required (--universe-id or env)')
 
 local suites = {
 	{ name = 'universe', suite = require './suite/universe' } :: any,
-	{ name = 'place', suite = require './suite/place' },
-	{ name = 'data_store', suite = require './suite/data_store' },
-	{ name = 'memory_store', suite = require './suite/memory_store' },
-	{ name = 'user_restriction', suite = require './suite/user_restriction' },
-	{ name = 'game_pass', suite = require './suite/game_pass' },
-	{ name = 'developer_product', suite = require './suite/developer_product' },
-	{ name = 'user', suite = require './suite/user' },
-	{ name = 'group', suite = require './suite/group' },
-	{ name = 'asset', suite = require './suite/asset' },
-	{ name = 'develop', suite = require './suite/develop' },
+	{ name = 'place', suite = require './suite/place.spec' },
+	{ name = 'data_store', suite = require './suite/data_store.spec' },
+	{ name = 'memory_store', suite = require './suite/memory_store.spec' },
+	{ name = 'user_restriction', suite = require './suite/user_restriction.spec' },
+	{ name = 'game_pass', suite = require './suite/game_pass.spec' },
+	{ name = 'developer_product', suite = require './suite/developer_product.spec' },
+	{ name = 'user', suite = require './suite/user.spec' },
+	{ name = 'group', suite = require './suite/group.spec' },
+	{ name = 'asset', suite = require './suite/asset.spec' },
+	{ name = 'develop', suite = require './suite/develop.spec' },
 }
 
 for _, entry in suites do
