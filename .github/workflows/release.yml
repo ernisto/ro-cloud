@@ -33,7 +33,7 @@ jobs:
         with:
           token: ${{ github.token }}
 
-      - run: pesde auth login --token ${{ secrets.PESDE_AUTH }}
+      - run: pesde auth login --token "${{ secrets.PESDE_AUTH }}"
         env:
           PESDE_AUTH: ${{ secrets.PESDE_AUTH }}
 
