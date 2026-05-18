@@ -12,14 +12,16 @@ end
 function run.list_roles()
 	local res = cloud.group.list_roles(config.session, id, { maxPageSize = 1 })
 	assert(res.ok, `failed: {res.message}`)
-	local list = (res.body :: any).groupRoles
+
+	local list = res.body.groupRoles
 	assert(type(list) == 'table' and #list <= 1, `maxPageSize=1 not honored (got {#list})`)
 end
 
 function run.list_memberships()
 	local res = cloud.group.list_memberships(config.session, id, { maxPageSize = 1 })
 	assert(res.ok, `failed: {res.message}`)
-	local list = (res.body :: any).groupMemberships
+
+	local list = res.body.groupMemberships
 	assert(type(list) == 'table' and #list <= 1, `maxPageSize=1 not honored (got {#list})`)
 end
 

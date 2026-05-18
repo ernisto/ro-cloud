@@ -12,7 +12,8 @@ end
 function run.list_versions()
 	local res = cloud.asset.list_versions(config.session, id, { maxPageSize = 1 })
 	assert(res.ok, `failed: {res.message}`)
-	local list = (res.body :: any).assetVersions
+
+	local list = res.body.assetVersions
 	assert(type(list) == 'table' and #list <= 1, `maxPageSize=1 not honored (got {#list})`)
 end
 

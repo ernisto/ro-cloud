@@ -1,5 +1,4 @@
 local auth = require './auth'
-type json = auth.json_object
 
 -- defs
 export type universe_identity = { universe_id: number }
@@ -38,6 +37,11 @@ export type restriction_log = {
 
 type page_query = { maxPageSize: number?, pageToken: string? }
 
+-- TODO: complete from Roblox cloud docs
+export type restrictions_page = { userRestrictions: { restriction }, nextPageToken: string? }
+-- TODO: complete from Roblox cloud docs
+export type restriction_logs_page = { logs: { restriction_log }, nextPageToken: string? }
+
 -- functions
 local function list(
 	session: auth.apikey_session | auth.oauth2_session,
@@ -48,7 +52,7 @@ local function list(
 		then `https://apis.roblox.com/cloud/v2/universes/{subject.universe_id}/places/{(subject :: any).place_id}/user-restrictions`
 		else `https://apis.roblox.com/cloud/v2/universes/{subject.universe_id}/user-restrictions`
 
-	return auth.request_json(session, 'GET', url, query) :: auth.http_result<json>
+	return auth.request_json(session, 'GET', url, query) :: auth.http_result<restrictions_page>
 end
 
 local function get(
@@ -82,7 +86,7 @@ local function list_logs(
 	query: page_query?
 )
 	local url = `https://apis.roblox.com/cloud/v2/universes/{subject.universe_id}/user-restrictions:listLogs`
-	return auth.request_json(session, 'GET', url, query)
+	return auth.request_json(session, 'GET', url, query) :: auth.http_result<restriction_logs_page>
 end
 
 -- module

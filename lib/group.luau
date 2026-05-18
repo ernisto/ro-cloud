@@ -69,9 +69,11 @@ local function get_shout(session: auth.apikey_session | auth.oauth2_session, sub
 	return auth.request_json(session, 'GET', url) :: auth.http_result<shout>
 end
 
+-- TODO: complete from Roblox cloud docs
+export type roles_page = { groupRoles: { role }, nextPageToken: string? }
 local function list_roles(session: auth.apikey_session | auth.oauth2_session, subject: identity, query: page_query?)
 	local url = `https://apis.roblox.com/cloud/v2/groups/{subject.group_id}/roles`
-	return auth.request_json(session, 'GET', url, query) :: auth.http_result<auth.json_object>
+	return auth.request_json(session, 'GET', url, query) :: auth.http_result<roles_page>
 end
 
 local function get_role(session: auth.apikey_session | auth.oauth2_session, subject: role_identity)
@@ -79,13 +81,15 @@ local function get_role(session: auth.apikey_session | auth.oauth2_session, subj
 	return auth.request_json(session, 'GET', url) :: auth.http_result<role>
 end
 
+-- TODO: complete from Roblox cloud docs
+export type memberships_page = { groupMemberships: { membership }, nextPageToken: string? }
 local function list_memberships(
 	session: auth.apikey_session | auth.oauth2_session,
 	subject: identity,
 	query: page_query?
 )
 	local url = `https://apis.roblox.com/cloud/v2/groups/{subject.group_id}/memberships`
-	return auth.request_json(session, 'GET', url, query) :: auth.http_result<auth.json_object>
+	return auth.request_json(session, 'GET', url, query) :: auth.http_result<memberships_page>
 end
 
 local function update_membership(
@@ -97,13 +101,15 @@ local function update_membership(
 	return auth.request_json(session, 'PATCH', url, nil, data) :: auth.http_result<membership>
 end
 
+-- TODO: complete from Roblox cloud docs
+export type join_requests_page = { groupJoinRequests: { join_request }, nextPageToken: string? }
 local function list_join_requests(
 	session: auth.apikey_session | auth.oauth2_session,
 	subject: identity,
 	query: page_query?
 )
 	local url = `https://apis.roblox.com/cloud/v2/groups/{subject.group_id}/join-requests`
-	return auth.request_json(session, 'GET', url, query) :: auth.http_result<auth.json_object>
+	return auth.request_json(session, 'GET', url, query) :: auth.http_result<join_requests_page>
 end
 
 local function accept_join_request(session: auth.apikey_session | auth.oauth2_session, subject: join_request_identity)

@@ -131,9 +131,11 @@ local function get_version(session: auth.apikey_session | auth.oauth2_session, s
 	return auth.request_json(session, 'GET', url) :: auth.http_result<asset_version>
 end
 
+-- TODO: complete from Roblox cloud docs
+export type asset_versions_page = { assetVersions: { asset_version }, nextPageToken: string? }
 local function list_versions(session: auth.apikey_session | auth.oauth2_session, subject: identity, query: page_query?)
 	local url = `https://apis.roblox.com/assets/v1/assets/{subject.asset_id}/versions`
-	return auth.request_json(session, 'GET', url, query) :: auth.http_result<{}>
+	return auth.request_json(session, 'GET', url, query) :: auth.http_result<asset_versions_page>
 end
 
 local function get_operation(session: auth.apikey_session | auth.oauth2_session, operation_id: string)

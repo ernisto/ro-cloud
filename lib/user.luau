@@ -1,5 +1,4 @@
 local auth = require './auth'
-type json = auth.json_object
 
 -- defs
 export type identity = { user_id: number }
@@ -58,9 +57,11 @@ local function get(session: auth.apikey_session | auth.oauth2_session, subject: 
 	return auth.request_json(session, 'GET', url) :: auth.http_result<user_data>
 end
 
+-- TODO: complete from Roblox cloud docs
+export type inventory_page = { inventoryItems: { inventory_item }, nextPageToken: string? }
 local function list_inventory(session: auth.apikey_session | auth.oauth2_session, subject: identity, query: page_query?)
 	local url = `https://apis.roblox.com/cloud/v2/users/{subject.user_id}/inventory-items`
-	return auth.request_json(session, 'GET', url, query) :: auth.http_result<json>
+	return auth.request_json(session, 'GET', url, query) :: auth.http_result<inventory_page>
 end
 
 local function send_notification(

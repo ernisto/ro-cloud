@@ -34,10 +34,12 @@ end
 
 type params = { count: number?, allOrNothing: boolean?, invisibilityWindow: string? }
 
+-- TODO: complete from Roblox cloud docs
+export type queue_read = { items: { queue_item }? }
 local function read_queue(session: auth.apikey_session, subject: queue_identity, params: params)
 	local url =
 		`https://apis.roblox.com/cloud/v2/universes/{subject.universe_id}/memory-store/queues/{subject.queue_id}/items:read`
-	return auth.request_json(session, 'GET', url, params) :: auth.http_result<auth.json_object>
+	return auth.request_json(session, 'GET', url, params) :: auth.http_result<queue_read>
 end
 
 local function discard_queue(session: auth.apikey_session, subject: queue_identity, read_id: string)
@@ -46,10 +48,12 @@ local function discard_queue(session: auth.apikey_session, subject: queue_identi
 	return auth.request_json(session, 'POST', url, { readId = read_id }) :: auth.http_result<nil>
 end
 
+-- TODO: complete from Roblox cloud docs
+export type sorted_map_page = { items: { sorted_map_item }, nextPageToken: string? }
 local function list_sorted_map(session: auth.apikey_session, subject: sorted_map_identity, query: ordered_page_query?)
 	local url =
 		`https://apis.roblox.com/cloud/v2/universes/{subject.universe_id}/memory-store/sorted-maps/{subject.sorted_map_id}/items`
-	return auth.request_json(session, 'GET', url, query) :: auth.http_result<auth.json_object>
+	return auth.request_json(session, 'GET', url, query) :: auth.http_result<sorted_map_page>
 end
 
 local function get_sorted_map_item(session: auth.apikey_session, subject: sorted_map_item_identity)

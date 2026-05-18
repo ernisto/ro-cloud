@@ -1,6 +1,5 @@
 local auth = require './auth'
 local universe = require './universe'
-type json = auth.json_object
 
 -- defs
 export type store_identity = { universe_id: number, data_store_id: string, scope_id: string? }
@@ -30,6 +29,17 @@ export type entry = {
 export type ordered_entry = { path: string?, value: number?, id: string? }
 
 type page_query = { maxPageSize: number?, pageToken: string?, filter: string? }
+
+-- TODO: complete from Roblox cloud docs
+export type stores_page = { dataStores: { data_store }, nextPageToken: string? }
+-- TODO: complete from Roblox cloud docs
+export type entries_page = { dataStoreEntries: { entry }, nextPageToken: string? }
+-- TODO: complete from Roblox cloud docs
+export type entry_revisions_page = { dataStoreEntries: { entry }, nextPageToken: string? }
+-- TODO: complete from Roblox cloud docs
+export type ordered_entries_page = { orderedDataStoreEntries: { ordered_entry }, nextPageToken: string? }
+-- TODO: complete from Roblox cloud docs
+export type snapshot_result = { newSnapshotTaken: boolean?, latestSnapshotTime: string? }
 
 -- helpers
 local function store_path(subject: store_identity | entry_identity)
@@ -67,11 +77,11 @@ end
 -- functions
 local function snapshot(session: auth.apikey_session, subject: universe.identity)
 	local url = `https://apis.roblox.com/cloud/v2/universes/{subject.universe_id}/data-stores:snapshot`
-	return auth.request_json(session, 'POST', url) :: auth.http_result<json>
+	return auth.request_json(session, 'POST', url) :: auth.http_result<snapshot_result>
 end
 local function list_stores(session: auth.apikey_session, subject: universe.identity, query: page_query?)
 	local url = `https://apis.roblox.com/cloud/v2/universes/{subject.universe_id}/data-stores`
-	return auth.request_json(session, 'GET', url, query) :: auth.http_result<json>
+	return auth.request_json(session, 'GET', url, query) :: auth.http_result<stores_page>
 end
 
 local function delete_store(session: auth.apikey_session, subject: store_identity)
@@ -85,7 +95,7 @@ end
 
 local function list_entries(session: auth.apikey_session, subject: store_identity, query: page_query?)
 	local url = `{store_path(subject)}/entries`
-	return auth.request_json(session, 'GET', url, query) :: auth.http_result<json>
+	return auth.request_json(session, 'GET', url, query) :: auth.http_result<entries_page>
 end
 
 local function create_entry(session: auth.apikey_session, subject: store_identity, id: string?, data: entry)
@@ -119,7 +129,7 @@ end
 
 local function list_entry_revisions(session: auth.apikey_session, subject: entry_identity, query: page_query?)
 	local url = `{store_path(subject)}:listRevisions`
-	return auth.request_json(session, 'GET', url, query) :: auth.http_result<json>
+	return auth.request_json(session, 'GET', url, query) :: auth.http_result<entry_revisions_page>
 end
 
 type ordered_page_query = { maxPageSize: number?, pageToken: string?, orderBy: string?, filter: string? }
@@ -129,7 +139,7 @@ local function list_ordered_entries(
 	query: ordered_page_query?
 )
 	local url = `{ordered_store_path(subject)}/entries`
-	return auth.request_json(session, 'GET', url, query) :: auth.http_result<json>
+	return auth.request_json(session, 'GET', url, query) :: auth.http_result<ordered_entries_page>
 end
 
 local function create_ordered_entry(

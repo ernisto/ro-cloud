@@ -22,7 +22,7 @@ assert(config.api_key, 'API_KEY required (--api-key or env)')
 assert(config.universe_id, 'UNIVERSE_ID required (--universe-id or env)')
 
 local suites = {
-	{ name = 'universe', suite = require './suite/universe' } :: any,
+	{ name = 'universe', suite = require './suite/universe.spec' } :: any,
 	{ name = 'place', suite = require './suite/place.spec' },
 	{ name = 'data_store', suite = require './suite/data_store.spec' },
 	{ name = 'memory_store', suite = require './suite/memory_store.spec' },

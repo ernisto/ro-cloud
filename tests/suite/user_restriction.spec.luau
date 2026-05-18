@@ -7,14 +7,16 @@ local run = {}
 function run.list()
 	local res = cloud.user_restriction.list(config.session, id, { maxPageSize = 1 })
 	assert(res.ok, `failed: {res.message}`)
-	local list = (res.body :: any).userRestrictions
+
+	local list = res.body.userRestrictions
 	assert(type(list) == 'table' and #list <= 1, `maxPageSize=1 not honored (got {#list})`)
 end
 
 function run.list_logs()
 	local res = cloud.user_restriction.list_logs(config.session, id, { maxPageSize = 1 })
-	assert((res :: any).ok, `failed: {(res :: any).message}`)
-	local list = ((res :: any).body :: any).logs
+	assert(res.ok, `failed: {res.message}`)
+
+	local list = res.body.logs
 	assert(type(list) == 'table' and #list <= 1, `maxPageSize=1 not honored (got {#list})`)
 end
 

@@ -12,7 +12,8 @@ local run = {}
 function run.list_stores()
 	local res = cloud.data_store.list_stores(config.session, universe, { maxPageSize = 1 })
 	assert(res.ok, `failed: {res.message}`)
-	local list = (res.body :: any).dataStores
+
+	local list = res.body.dataStores
 	assert(type(list) == 'table' and #list <= 1, `maxPageSize=1 not honored (got {#list})`)
 end
 
@@ -23,7 +24,8 @@ function run.list_entries()
 		return
 	end
 	assert(res.ok, `failed: {res.message}`)
-	local list = (res.body :: any).dataStoreEntries
+
+	local list = res.body.dataStoreEntries
 	assert(type(list) == 'table' and #list <= 1, `maxPageSize=1 not honored (got {#list})`)
 end
 
