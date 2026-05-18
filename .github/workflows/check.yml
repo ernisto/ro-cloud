@@ -19,7 +19,7 @@ jobs:
         with:
           token: ${{ github.token }}
           version: 2.5.2
-          args: --config-path stylua.toml --check lib tests
+          args: --config-path stylua.toml --check lib cli utils tests
 
   lint-code:
     runs-on: ubuntu-latest
@@ -29,9 +29,14 @@ jobs:
         with:
           token: ${{ github.token }}
 
+      - uses: axiom-co/setup-pesde@b690699ace34169731b6b2a1c93b2008472038a7
+      - run: pesde install
+      - run: lune setup
+
       - name: Lint
         run: >
           luau-lsp analyze
+          --platform standard
           --base-luaurc .luaurc
           --ignore **/*_packages/**
           lib cli utils tests
@@ -40,7 +45,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+
       - uses: axiom-co/setup-pesde@b690699ace34169731b6b2a1c93b2008472038a7
+      - run: pesde install
 
       - name: Run tests
         run: pesde x ernisto/test
