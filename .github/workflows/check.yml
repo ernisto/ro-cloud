@@ -51,3 +51,5 @@ jobs:
 
       - name: Run tests
         run: pesde x ernisto/test
+        env:
+          API_KEY: ${{ secrets.ROBLOX_API_KEY }}
