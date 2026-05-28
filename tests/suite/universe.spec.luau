@@ -10,7 +10,7 @@ function run.get()
 end
 
 function run.list_secrets()
-	local res = cloud.universe.list_secrets(config.session, id)
+	local res = cloud.universe_secret.list(config.session, id)
 	assert(res.ok)
 end
 

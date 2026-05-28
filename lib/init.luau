@@ -23,8 +23,10 @@ export type pass = pass.pass_data
 local universe = require '@self/universe'
 export type universe_identity = universe.identity
 export type universe = universe.universe_data
-export type universe_secret = universe.secret
-export type universe_public_key = universe.public_key
+
+local universe_secret = require '@self/universe_secret'
+export type universe_secret = universe_secret.secret
+export type universe_public_key = universe_secret.public_key
 
 local place = require '@self/place'
 export type place_version_identity = place.version_identity
@@ -76,6 +78,7 @@ export type dev_group = develop.dev_group
 return table.freeze {
 	auth = auth,
 	universe = universe,
+	universe_secret = universe_secret,
 	place = place,
 	asset = asset,
 	data_store = data_store,
