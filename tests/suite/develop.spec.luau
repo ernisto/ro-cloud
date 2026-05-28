@@ -2,7 +2,15 @@ local cloud = require '@lib'
 local config = require '../config'
 
 local session = config.cookie_session :: cloud.cookie_session
+
+local focus = {}
+local skip = {}
 local run = {}
+
+function skip.create_universe()
+	local data = cloud.universe.create(session, { groupId = 16774807, templatePlaceId = 95206881 })
+	assert(data.ok)
+end
 
 function run.get_user_universes()
 	local data = cloud.develop.get_user_universes(session)
@@ -24,4 +32,4 @@ function run.get_group_universes()
 end
 
 if not session then warn(`COOKIE required for develop.spec tests`) end
-return if session then run else { run = {}, skip = run }
+return if session then { run = run, skip = skip, focus = focus } else { run = {}, skip = run, focus = focus }

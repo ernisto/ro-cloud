@@ -24,7 +24,16 @@ local function request(
 	content_type: string? -- unknown
 )
 	local headers: any = { ['Content-Type'] = content_type, ['Cookie'] = session.cookie }
-	return net.request { url = url, method = method, body = body, headers = headers, query = query }
+	local res = net.request { url = url, method = method, body = body, headers = headers, query = query }
+
+	if res.statusCode == 403 then
+		local token = res.headers['x-csrf-token'] or res.headers['X-CSRF-TOKEN']
+		if type(token) == 'string' then
+			headers['X-CSRF-TOKEN'] = token
+			res = net.request { url = url, method = method, body = body, headers = headers, query = query }
+		end
+	end
+	return res
 end
 
 -- module

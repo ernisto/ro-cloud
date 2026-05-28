@@ -70,7 +70,15 @@ export type secret_create = { secret: string }
 export type secret_patch = { secret: string? }
 export type public_key = { key_id: string?, public_key: string? }
 
+export type create_params = { templatePlaceId: number, groupId: number? }
+export type create_response = { universeId: number, rootPlaceId: number? }
+
 -- functions
+local function create(session: auth.cookie_session, params: create_params)
+	local url = 'https://apis.roblox.com/universes/v1/universes/create'
+	local query = { groupId = params.groupId }
+	return auth.request_json(session, 'POST', url, query, params) :: auth.http_result<create_response>
+end
 local function get(session: auth.apikey_session | auth.oauth2_session, subject: identity)
 	local url = `https://apis.roblox.com/cloud/v2/universes/{subject.universe_id}`
 	return auth.request_json(session, 'GET', url) :: auth.http_result<universe_data>
@@ -120,6 +128,7 @@ end
 
 -- module
 return table.freeze {
+	create = create,
 	get = get,
 	update = update,
 	publish_message = publish_message,

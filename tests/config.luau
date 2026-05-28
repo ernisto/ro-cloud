@@ -1,12 +1,15 @@
 local cloud = require '@lib'
 local env = require '@utils/env'
 
-local api_key = assert(env.str 'API_KEY', 'API_KEY required (--api-key or env)')
+local api_key = env.str 'API_KEY'
 local cookie = env.str 'COOKIE'
 
+if not api_key then warn 'missing API_KEY env var' end
+if not cookie then warn 'missing COOKIE env var' end
+
 return table.freeze {
-	session = cloud.auth.apikey.login(api_key),
-	cookie_session = if cookie then cloud.auth.cookie.login(cookie) else nil,
+	session = api_key and cloud.auth.apikey.login(api_key),
+	cookie_session = cookie and cloud.auth.cookie.login(cookie),
 
 	universe_id = 7176734135,
 	place_id = 102181929056899,
