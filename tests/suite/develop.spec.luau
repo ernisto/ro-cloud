@@ -8,13 +8,13 @@ local skip = {}
 local run = {}
 
 function skip.create_universe()
-	local data = cloud.universe.create(session, { groupId = 16774807, templatePlaceId = 95206881 })
-	assert(data.ok)
+	local res = cloud.universe.create(session, { groupId = 16774807, templatePlaceId = 95206881 })
+	assert(res.ok)
 end
 
 function run.get_user_universes()
-	local data = cloud.develop.get_user_universes(session)
-	assert(data.ok and type(data.body.data) == 'table', 'expected data.data to be a table')
+	local res = cloud.develop.get_user_universes(session)
+	assert(res.ok and type(res.body.data) == 'table', 'expected data.data to be a table')
 end
 
 function run.get_groups()

@@ -5,8 +5,8 @@ local id = { group_id = config.group_id }
 local run = {}
 
 function run.get()
-	local data = cloud.group.get(config.session, id)
-	assert(data.ok and data.body.path, 'missing path')
+	local res = cloud.group.get(config.session, id)
+	assert(res.ok and res.body.path, 'missing path')
 end
 
 function run.list_roles()

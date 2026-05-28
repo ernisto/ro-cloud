@@ -13,8 +13,8 @@ function run.list()
 end
 
 function run.get()
-	local data = cloud.product.get(config.session, id)
-	assert(data.ok and data.body.name, 'missing name')
+	local res = cloud.product.get(config.session, id)
+	assert(res.ok and res.body.name, 'missing name')
 end
 
 return run

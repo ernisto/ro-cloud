@@ -5,12 +5,13 @@ local id = { universe_id = config.universe_id }
 local run = {}
 
 function run.get()
-	local data = cloud.universe.get(config.session, id)
-	assert(data.ok and data.body.path, 'missing path')
+	local res = cloud.universe.get(config.session, id)
+	assert(res.ok and res.body.path, 'missing path')
 end
 
 function run.list_secrets()
-	cloud.universe.list_secrets(config.session, id)
+	local res = cloud.universe.list_secrets(config.session, id)
+	assert(res.ok)
 end
 
 return run

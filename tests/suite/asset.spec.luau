@@ -5,8 +5,8 @@ local id = { asset_id = config.asset_id }
 local run = {}
 
 function run.get()
-	local data = cloud.asset.get(config.session, id)
-	assert(data.ok and data.body.assetType, 'missing assetType')
+	local res = cloud.asset.get(config.session, id)
+	assert(res.ok and res.body.assetType, 'missing assetType')
 end
 
 function run.list_versions()
