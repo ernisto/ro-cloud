@@ -39,6 +39,11 @@ export type place_identity = place.identity
 export type place_info = place.info
 export type place_instance_identity = place.instance_identity
 
+local place_configuration = require '@self/place_configuration'
+export type place_configuration_identity = place_configuration.identity
+export type place_data = place_configuration.place_data
+export type place_patch = place_configuration.place_patch
+
 local developer_product = require '@self/developer_product'
 export type product_identity = developer_product.identity
 export type product = developer_product.product_data
@@ -85,6 +90,7 @@ return table.freeze {
 	universe = universe,
 	universe_secret = universe_secret,
 	universe_configuration = universe_configuration,
+	place_configuration = place_configuration,
 	place = place,
 	asset = asset,
 	data_store = data_store,
