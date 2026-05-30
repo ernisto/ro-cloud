@@ -28,6 +28,11 @@ local universe_secret = require '@self/universe_secret'
 export type universe_secret = universe_secret.secret
 export type universe_public_key = universe_secret.public_key
 
+local universe_configuration = require '@self/universe_configuration'
+export type universe_settings_patch = universe_configuration.settings_patch
+export type universe_settings_data = universe_configuration.settings_data
+export type universe_configuration_data = universe_configuration.configuration_data
+
 local place = require '@self/place'
 export type place_version_identity = place.version_identity
 export type place_identity = place.identity
@@ -79,6 +84,7 @@ return table.freeze {
 	auth = auth,
 	universe = universe,
 	universe_secret = universe_secret,
+	universe_configuration = universe_configuration,
 	place = place,
 	asset = asset,
 	data_store = data_store,
