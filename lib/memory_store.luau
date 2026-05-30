@@ -81,13 +81,8 @@ local function update_sorted_map_item(
 )
 	local url =
 		`https://apis.roblox.com/cloud/v2/universes/{subject.universe_id}/memory-store/sorted-maps/{subject.sorted_map_id}/items/{subject.item_id}`
-	return auth.request_json(
-			session,
-			'PATCH',
-			url,
-			{ allowMissing = allow_missing },
-			item
-		) :: auth.http_result<sorted_map_item>
+	local query = { allowMissing = allow_missing }
+	return auth.request_json(session, 'PATCH', url, query, item) :: auth.http_result<sorted_map_item>
 end
 
 local function delete_sorted_map_item(session: auth.apikey_session, subject: sorted_map_item_identity)

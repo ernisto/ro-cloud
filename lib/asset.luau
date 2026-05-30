@@ -79,13 +79,8 @@ end
 
 local function create(session: auth.apikey_session | auth.oauth2_session, asset: asset_data_patch, content: buffer)
 	local data = auth.form { fileContent = content, request = serde.encode('json', asset) }
-	return auth.request_json(
-			session,
-			'POST',
-			'https://apis.roblox.com/assets/v1/assets',
-			nil,
-			data
-		) :: auth.http_result<asset_operation>
+	local url = 'https://apis.roblox.com/assets/v1/assets'
+	return auth.request_json(session, 'POST', url, nil, data) :: auth.http_result<asset_operation>
 end
 
 local function update(
@@ -96,13 +91,8 @@ local function update(
 )
 	local url = `https://apis.roblox.com/assets/v1/assets/{subject.asset_id}`
 	local data = auth.form { request = serde.encode('json', asset), fileContent = content }
-	return auth.request_json(
-			session,
-			'PATCH',
-			url,
-			{ updateMask = auth.mask_from(asset) },
-			data
-		) :: auth.http_result<asset_operation>
+	local query = { updateMask = auth.mask_from(asset) }
+	return auth.request_json(session, 'PATCH', url, query, data) :: auth.http_result<asset_operation>
 end
 
 local function get(session: auth.apikey_session | auth.oauth2_session, subject: identity, read_mask: string?)
