@@ -72,7 +72,8 @@ local function get(session: auth.apikey_session | auth.oauth2_session, subject: 
 end
 local function update(session: auth.apikey_session | auth.oauth2_session, subject: identity, patch: universe_patch)
 	local url = `https://apis.roblox.com/cloud/v2/universes/{subject.universe_id}`
-	return auth.request_json(session, 'PATCH', url, patch) :: auth.http_result<universe_data>
+	local query = { updateMask = auth.mask_from(patch) }
+	return auth.request_json(session, 'PATCH', url, query, patch) :: auth.http_result<universe_data>
 end
 local function publish_message(session: auth.apikey_session | auth.oauth2_session, subject: identity, message: message)
 	local url = `https://apis.roblox.com/cloud/v2/universes/{subject.universe_id}:publishMessage`
