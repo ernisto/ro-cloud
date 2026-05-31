@@ -89,11 +89,11 @@ export type configuration_data = {
 
 -- functions
 local function get(session: auth.cookie_session, subject: identity)
-	local url = `https://develop.roblox.com/v2/universes/{subject.universe_id}/configuration`
+	local url = `https://develop.roblox.com/v1/universes/{subject.universe_id}/configuration`
 	return auth.request_json(session, 'GET', url) :: auth.http_result<configuration_data>
 end
 local function update(session: auth.cookie_session, subject: identity, patch: settings_patch)
-	local url = `https://develop.roblox.com/v2/universes/{subject.universe_id}/configuration`
+	local url = `https://develop.roblox.com/v1/universes/{subject.universe_id}/configuration`
 	return auth.request_json(session, 'PATCH', url, nil, patch) :: auth.http_result<settings_data>
 end
 
