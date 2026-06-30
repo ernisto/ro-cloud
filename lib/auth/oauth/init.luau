@@ -1,6 +1,7 @@
-local net = require '@lune/net'
+local json = require '@std/json'
+local runtime = require '@utils/runtime'
+
 local pkce = require '@self/pkce'
-local serde = require '@lune/serde'
 local types = require '@self/types'
 
 -- defs
@@ -31,13 +32,13 @@ local function create_authorization_url(
 		code_verifier
 end
 
-local function parse_token_response(response: net.FetchResponse): session
+local function parse_token_response(response: runtime.response): session
 	if not response.ok then
-		local error_data = serde.decode('json', response.body) :: oauth_error
+		local error_data = json.deserialize(response.body) :: oauth_error
 		error(`OAuth error: {error_data.error} - {error_data.error_description or 'No description'}`)
 	end
 
-	local token_data = serde.decode('json', response.body)
+	local token_data: any = json.deserialize(response.body)
 	local now = os.time()
 
 	return {
@@ -60,16 +61,18 @@ local function exchange_code_for_token(
 	code_verifier: string
 ): session
 	local headers: any = { ['Content-Type'] = 'application/x-www-form-urlencoded' }
-	local response = net.request {
+	local response = runtime.net.request {
 		url = API_ENDPOINT .. 'oauth/v1/token',
 		method = 'POST',
 		headers = headers,
-		body = `grant_type=authorization_code`
-			.. `&code={net.urlEncode(code)}`
-			.. `&redirect_uri={net.urlEncode(redirect_uri)}`
-			.. `&client_id={net.urlEncode(client_id)}`
-			.. `&client_secret={net.urlEncode(client_secret)}`
-			.. `&code_verifier={net.urlEncode(code_verifier)}`,
+		body = `grant_type=authorization_code`,
+		query = {
+			code = code,
+			redirect_uri = redirect_uri,
+			client_id = client_id,
+			client_secret = client_secret,
+			code_verifier = code_verifier,
+		},
 	}
 
 	return parse_token_response(response)
@@ -77,14 +80,12 @@ end
 
 local function refresh_token(client_id: string, client_secret: string, refresh_token: string): session
 	local header: any = { ['Content-Type'] = 'application/x-www-form-urlencoded' }
-	local response = net.request {
+	local response = runtime.net.request {
 		url = API_ENDPOINT .. 'oauth/v1/token',
 		method = 'POST',
 		headers = header,
-		body = `grant_type=refresh_token`
-			.. `&refresh_token={net.urlEncode(refresh_token)}`
-			.. `&client_id={net.urlEncode(client_id)}`
-			.. `&client_secret={net.urlEncode(client_secret)}`,
+		body = `grant_type=refresh_token`,
+		query = { refresh_token = refresh_token, client_id = client_id, client_secret = client_secret },
 	}
 
 	return parse_token_response(response)
@@ -97,7 +98,7 @@ end
 -- methods
 local function request(
 	session: session,
-	method: net.HttpMethod,
+	method: string,
 	url: string,
 	query: {}?,
 	body: string | buffer?,
@@ -106,7 +107,7 @@ local function request(
 	assert(not is_session_expired(session), 'Session has expired. Please refresh the token.')
 	local headers: any =
 		{ ['Authorization'] = `{session.token_type} {session.access_token}`, ['Content-Type'] = content_type }
-	return net.request { url = url, method = method, headers = headers, body = body, query = query }
+	return runtime.net.request { url = url, method = method, headers = headers, body = body, query = query }
 end
 
 -- module

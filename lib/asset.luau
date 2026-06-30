@@ -1,5 +1,5 @@
 local auth = require './auth'
-local serde = require '@lune/serde'
+local runtime = require '@utils/runtime'
 
 -- defs
 export type identity = { asset_id: number }
@@ -73,12 +73,12 @@ local function download(
 		code = response.statusCode,
 		message = response.statusMessage,
 		headers = response.headers,
-		body = if response.ok then buffer.fromstring(response.body) else serde.decode('json', response.body),
+		body = if response.ok then buffer.fromstring(response.body) else runtime.json.decode(response.body),
 	} :: any
 end
 
 local function create(session: auth.apikey_session | auth.oauth2_session, asset: asset_data_patch, content: buffer)
-	local data = auth.form { fileContent = content, request = serde.encode('json', asset) }
+	local data = auth.form { fileContent = content, request = runtime.json.encode(asset) }
 	local url = 'https://apis.roblox.com/assets/v1/assets'
 	return auth.request_json(session, 'POST', url, nil, data) :: auth.http_result<asset_operation>
 end
@@ -90,7 +90,7 @@ local function update(
 	content: buffer?
 )
 	local url = `https://apis.roblox.com/assets/v1/assets/{subject.asset_id}`
-	local data = auth.form { request = serde.encode('json', asset), fileContent = content }
+	local data = auth.form { request = runtime.json.encode(asset), fileContent = content }
 	local query = { updateMask = auth.mask_from(asset) }
 	return auth.request_json(session, 'PATCH', url, query, data) :: auth.http_result<asset_operation>
 end

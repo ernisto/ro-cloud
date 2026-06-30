@@ -1,4 +1,4 @@
-local net = require '@lune/net'
+local runtime = require '@utils/runtime'
 
 -- defs
 export type session = { api_key: string }
@@ -11,14 +11,14 @@ end
 -- methods
 local function request(
 	session: session,
-	method: net.HttpMethod,
+	method: string,
 	url: string,
 	query: {}?,
 	body: string | buffer?,
 	content_type: string? -- unknown
 )
 	local headers: any = { ['Content-Type'] = content_type, ['x-api-key'] = session.api_key }
-	return net.request { url = url, method = method, body = body, headers = headers, query = query }
+	return runtime.net.request { url = url, method = method, body = body, headers = headers, query = query }
 end
 
 -- module

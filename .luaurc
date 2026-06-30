@@ -1,12 +1,13 @@
 {
   "languageMode": "strict",
+  "aliases": {
+    "utils": "./utils",
+    "lib": "./lib",
+    "pkg": "./lune_packages",
+    "std": "~/.lute/typedefs/1.0.0/std",
+    "lute": "~/.lute/typedefs/1.0.0/lute"
+  },
   "globals": [
     "warn"
-  ],
-  "aliases": {
-    "lune": "~/.lune/.typedefs/0.10.4/",
-    "pkg": "./lune_packages",
-    "utils": "./utils",
-    "lib": "./lib"
-  }
+  ]
 }

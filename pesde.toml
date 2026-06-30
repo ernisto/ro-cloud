@@ -22,10 +22,6 @@ bin = "cli/init.luau"
 
 [engines]
 pesde = "^0.7.0"
-lune = "^0.10.4"
 
 [indices]
 default = "https://github.com/pesde-pkg/index"
-
-[dependencies]
-base64 = { name = "synpixel/base64", version = "^3.0.1" }

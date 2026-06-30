@@ -1,10 +1,8 @@
-local net = require '@lune/net'
-local serde = require '@lune/serde'
-
 local apikey = require '@self/apikey'
 local cookie = require '@self/cookie'
 local form = require '@self/form'
 local oauth = require '@self/oauth'
+local runtime = require '@utils/runtime'
 
 export type oauth2_session = oauth.session
 export type cookie_session = cookie.session
@@ -32,7 +30,7 @@ end
 -- functions
 local function request(
 	session: session,
-	method: net.HttpMethod,
+	method: string,
 	url: string,
 	query: query_params?,
 	body: string | buffer?,
@@ -47,16 +45,16 @@ end
 
 local function request_json<R, E>(
 	session: session,
-	method: net.HttpMethod,
+	method: string,
 	url: string,
 	query: query_params?,
 	data: string | {}?,
 	content_type: string?
 ): http_result<R, E>
-	local json_data = if type(data) == 'table' then serde.encode('json', data) else data
+	local json_data = if type(data) == 'table' then runtime.json.encode(data) else data
 	local res = request(session, method, url, query, json_data, content_type or 'application/json')
 
-	local body = string.match(res.body, '^{') and serde.decode('json', res.body)
+	local body = string.match(res.body, '^{') and runtime.json.decode(res.body) :: any
 	local err = type(body) == 'table' and body.errors and body.errors[1]
 
 	local safe_res = if err
