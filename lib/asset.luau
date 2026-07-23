@@ -11,7 +11,7 @@ type preview = { asset: string?, altText: string? }
 type social_link = { title: string?, uri: string? }
 
 export type asset_data = {
-	assetType: string,
+	assetType: string, -- TODO: add enums
 	assetId: number,
 	displayName: string,
 	description: string,
@@ -26,7 +26,7 @@ export type asset_data = {
 	socialLink: social_link,
 }
 export type asset_data_patch = {
-	assetType: string,
+	assetType: string, -- TODO: add enums
 	assetId: number?,
 	displayName: string,
 	description: string?,

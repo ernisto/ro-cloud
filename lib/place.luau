@@ -1,5 +1,6 @@
 local asset = require './asset'
 local auth = require './auth'
+local universe = require './universe'
 type json = auth.json_object
 
 -- defs
@@ -24,7 +25,14 @@ export type instance_identity = { universe_id: number, place_id: number, instanc
 
 type page_query = { maxPageSize: number?, pageToken: string? }
 
+export type create_params = { templatePlaceId: number }
+export type create_response = { placeId: number }
+
 -- functions
+local function create(session: auth.cookie_session, subject: universe.identity, params: create_params)
+	local url = `https://apis.roblox.com/universes/v1/user/universes/{subject.universe_id}/places`
+	return auth.request_json(session, 'POST', url, nil, params) :: auth.http_result<create_response>
+end
 local function upload(session: auth.apikey_session, subject: identity, file: buffer, do_publish: boolean?)
 	local version_type = if do_publish then 'Published' else 'Saved'
 	local url =
@@ -77,6 +85,7 @@ end
 
 -- module
 return table.freeze {
+	create = create,
 	upload = upload,
 	download = download,
 	get_info = get_info,
