@@ -1,9 +1,5 @@
 name: Check
 
-concurrency:
-  group: check-${{ github.ref }}
-  cancel-in-progress: true
-
 on:
   workflow_dispatch:
   workflow_call:
