@@ -8,19 +8,20 @@ export type identity = { place_id: number }
 export type place_data = {
 	id: number,
 	universeId: number,
+	isRootPlace: boolean,
+	currentSavedVersion: number,
+	maxPlayersAllowed: number,
+	created: date,
+	updated: date,
+
 	name: string,
 	description: string,
-	isRootPlace: boolean?,
-	maxPlayerCount: number?,
-	socialSlotType: string?,
-	customSocialSlotsCount: number?,
-	allowCopying: boolean?,
-	currentSavedVersion: number?,
-	isAllGenresAllowed: boolean?,
-	allowedGearTypes: { number }?,
-	maxPlayersAllowed: number?,
-	created: date?,
-	updated: date?,
+	maxPlayerCount: number,
+	socialSlotType: string,
+	customSocialSlotsCount: number,
+	allowCopying: boolean,
+	isAllGenresAllowed: boolean,
+	allowedGearTypes: { number },
 }
 export type place_patch = {
 	name: string?,
@@ -29,8 +30,8 @@ export type place_patch = {
 	socialSlotType: string?,
 	customSocialSlotsCount: number?,
 	allowCopying: boolean?,
-	allowedGearTypes: { string }?,
 	isAllGenresAllowed: boolean?,
+	allowedGearTypes: { string }?,
 }
 
 -- functions
