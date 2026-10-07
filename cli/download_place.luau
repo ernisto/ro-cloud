@@ -18,7 +18,7 @@ if cache and fs.isFile(output) then
 	if age < cache then return nil end
 end
 
-local session = cloud.auth.apikey.login(api_key)
+local session = cloud.auth.new:api_key(api_key)
 local res = cloud.place.download(session, { place_id = place_id })
 
 local dir = output:match '(.*)/.+$'

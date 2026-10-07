@@ -8,8 +8,8 @@ if not api_key then warn 'missing API_KEY env var' end
 if not cookie then warn 'missing COOKIE env var' end
 
 return table.freeze {
-	session = api_key and cloud.auth.apikey.login(api_key),
-	cookie_session = cookie and cloud.auth.cookie.login(cookie),
+	session = api_key and cloud.auth.new:api_key(api_key),
+	cookie_session = cookie and cloud.auth.new:cookie(cookie),
 
 	universe_id = 7176734135,
 	place_id = 102181929056899,

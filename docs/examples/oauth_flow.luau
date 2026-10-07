@@ -17,10 +17,10 @@ local SCOPES = {
 }
 
 -- functions
-local function load_session(): oauth.session?
+local function load_session(): oauth.state?
 	return fs.isFile 'session.json' and serde.decode('json', fs.readFile 'session.json')
 end
-local function save_session(session: oauth.session?)
+local function save_session(session: oauth.state?)
 	if session then
 		fs.writeFile('session.json', serde.encode('json', session, true))
 	else
@@ -28,14 +28,14 @@ local function save_session(session: oauth.session?)
 	end
 end
 
-local function await_session(): oauth.session
+local function await_session(): oauth.state
 	while true do
 		local session = load_session()
 		if session then return session end
 		task.wait(1 / 5)
 	end
 end
-local function await_authorize(): oauth.session
+local function await_authorize(): oauth.state
 	local auth_url, code_verifier = oauth.create_authorization_url(CLIENT_ID, REDIRECT_URI, 'state_123', SCOPES :: any)
 	local auth_callback_server = net.serve(3000, function(req)
 		assert(req.path == '/callback', `invalid path: ${req.path}`)
@@ -70,13 +70,13 @@ local function await_authorize(): oauth.session
 	return session
 end
 
-local function try_refresh_session(session: oauth.session): oauth.session?
+local function try_refresh_session(session: oauth.state): oauth.state?
 	local success, new_session = pcall(oauth.refresh_token, CLIENT_ID, CLIENT_SECRET, session.refresh_token)
 	save_session(success and new_session or nil)
 
 	return new_session
 end
-local function maybe_fresh_session(session: oauth.session): oauth.session?
+local function maybe_fresh_session(session: oauth.state): oauth.state?
 	if oauth.is_session_expired(session) then
 		warn 'Session expired, refreshing...'
 		return try_refresh_session(session)
@@ -96,7 +96,7 @@ print('Expires in:', session.expires_in, 'seconds')
 print('Scopes:', table.concat(session.scope, ', '))
 
 print 'Testing access to API...'
-local response = auth.request_json(session, 'GET', 'oauth/v1/userinfo')
+local response = auth.request_json({ oauth = session }, 'GET', 'oauth/v1/userinfo')
 
 print 'API response:'
 print(response)

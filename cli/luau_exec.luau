@@ -65,7 +65,7 @@ local function fetch_new_logs(session, task_identity)
 end
 
 -- run
-local session = cloud.auth.apikey.login(api_key)
+local session = cloud.auth.new:api_key(api_key)
 local identity = { universe_id = universe_id, place_id = place_id, version = place_version }
 
 core_log(`Creating task... `)

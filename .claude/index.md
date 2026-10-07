@@ -4,10 +4,8 @@
 
 | File | Purpose |
 |------|---------|
-| `lib/auth/init.luau` | Dispatcher: `request_json`, `request_form`, `request` — routes to the correct backend based on session type. Defines shared types: `session`, `json`, `json_object`, `query_params`. Base URL: `https://apis.roblox.com/`. |
-| `lib/auth/apikey.luau` | API key session: `login(api_key) -> session`, `request(session, path, method, content_type, data)`. Injects `x-api-key` header. |
-| `lib/auth/cookie.luau` | Cookie session backend. |
-| `lib/auth/oauth/init.luau` | OAuth2 PKCE flow: `create_authorization_url`, `exchange_code_for_token`, `refresh_token`, `is_session_expired`, `request`. |
+| `lib/auth/init.luau` | Single HTTP entry point. Class-based session: `cloud.auth.new:api_key(key)` / `:cookie(value)` / `:local_cookie()` (via `roblox.getAuthCookie()`) / `:oauth(session)` (stores it as `{ oauth = session }`) — each method returns an immutable clone of self with the field set. One `request` builds headers (`x-api-key` / `Cookie` + CSRF retry / `Authorization`) for all three auth methods; `request_json` wraps it. Helpers: `get_user_info`, `mask_from`, `form`. Types: `session`, `apikey_session`, `cookie_session`, `oauth2_session`, `http_result`, `json`, `query_params`. |
+| `lib/auth/oauth/init.luau` | OAuth2 PKCE flow: `create_authorization_url`, `exchange_code_for_token`, `refresh_token`, `is_session_expired`. |
 | `lib/auth/oauth/types.luau` | Types only: `session`, `oauth_error`. No functions. |
 | `lib/auth/form.luau` | Multipart form builder (vendored). Returns a builder with `.text()`, `.file()`, `.build()`. |
 

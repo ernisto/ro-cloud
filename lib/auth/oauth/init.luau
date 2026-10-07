@@ -7,7 +7,7 @@ local types = require '@self/types'
 local API_ENDPOINT = 'https://apis.roblox.com/'
 
 export type permission = types.permission
-export type session = types.session
+export type state = types.session
 export type oauth_error = types.oauth_error
 
 -- functions
@@ -31,7 +31,7 @@ local function create_authorization_url(
 		code_verifier
 end
 
-local function parse_token_response(response: net.FetchResponse): session
+local function parse_token_response(response: net.FetchResponse): state
 	if not response.ok then
 		local error_data = serde.decode('json', response.body) :: oauth_error
 		error(`OAuth error: {error_data.error} - {error_data.error_description or 'No description'}`)
@@ -58,7 +58,7 @@ local function exchange_code_for_token(
 	code: string,
 	redirect_uri: string,
 	code_verifier: string
-): session
+): state
 	local headers: any = { ['Content-Type'] = 'application/x-www-form-urlencoded' }
 	local response = net.request {
 		url = API_ENDPOINT .. 'oauth/v1/token',
@@ -75,7 +75,7 @@ local function exchange_code_for_token(
 	return parse_token_response(response)
 end
 
-local function refresh_token(client_id: string, client_secret: string, refresh_token: string): session
+local function refresh_token(client_id: string, client_secret: string, refresh_token: string): state
 	local header: any = { ['Content-Type'] = 'application/x-www-form-urlencoded' }
 	local response = net.request {
 		url = API_ENDPOINT .. 'oauth/v1/token',
@@ -90,13 +90,13 @@ local function refresh_token(client_id: string, client_secret: string, refresh_t
 	return parse_token_response(response)
 end
 
-local function is_session_expired(session: session): boolean
+local function is_session_expired(session: state): boolean
 	return os.time() >= session.expires_at
 end
 
 -- methods
 local function request(
-	session: session,
+	session: state,
 	method: net.HttpMethod,
 	url: string,
 	query: {}?,
