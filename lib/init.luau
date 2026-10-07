@@ -29,9 +29,9 @@ export type universe_secret = universe_secret.secret
 export type universe_public_key = universe_secret.public_key
 
 local universe_configuration = require '@self/universe_configuration'
-export type universe_settings_patch = universe_configuration.settings_patch
-export type universe_settings_data = universe_configuration.settings_data
-export type universe_configuration_data = universe_configuration.configuration_data
+export type universe_settings_patch = universe_configuration.settings_patch_v2
+export type universe_settings_data = universe_configuration.settings_data_v2
+export type universe_settings_data_v1 = universe_configuration.settings_data_v1
 
 local place = require '@self/place'
 export type place_version_identity = place.version_identity
