@@ -1,9 +1,9 @@
-local auth = require './auth'
+local web = require './web'
+type endpoint<P, Q, B, R> = web.endpoint<P, Q, B, R>
 
 -- defs
-export type universe_identity = { universe_id: number }
-
 export type upload_response = { targetId: number }
+export type remove_icon_body = { placeId: number, placeIconId: number }
 export type media_item = {
 	assetTypeId: number,
 	assetType: string,
@@ -14,42 +14,71 @@ export type media_item = {
 	altText: string?,
 }
 
--- functions
-local function upload_icon(session: auth.cookie_session, subject: universe_identity, image: buffer)
-	local url = `https://publish.roblox.com/v1/games/{subject.universe_id}/icon`
-	local body = auth.form { ['request.files'] = image }
-	return auth.request_json(session, 'POST', url, nil, body) :: auth.http_result<upload_response>
-end
-local function remove_icon(session: auth.cookie_session, start_place_id: number, icon_asset_id: number)
-	local url = 'https://www.roblox.com/places/icons/remove-icon'
-	local body = `placeId={start_place_id}&placeIconId={icon_asset_id}`
-	local content_type = 'application/x-www-form-urlencoded'
-	return auth.request_json(session, 'POST', url, nil, body, content_type) :: auth.http_result<nil>
-end
-local function upload_thumbnail(session: auth.cookie_session, subject: universe_identity, image: buffer)
-	local url = `https://publish.roblox.com/v1/games/{subject.universe_id}/thumbnail/image`
-	local body = auth.form { ['request.files'] = image }
-	return auth.request_json(session, 'POST', url, nil, body) :: auth.http_result<upload_response>
-end
-local function list_thumbnails(session: auth.cookie_session, subject: universe_identity)
-	local url = `https://games.roblox.com/v1/games/{subject.universe_id}/media`
-	return auth.request_json(session, 'GET', url) :: auth.http_result<{ data: { media_item } }>
-end
-local function set_thumbnail_order(session: auth.cookie_session, subject: universe_identity, thumbnail_ids: { number })
-	local url = `https://develop.roblox.com/v1/universes/{subject.universe_id}/thumbnails/order`
-	return auth.request_json(session, 'POST', url, nil, { thumbnailIds = thumbnail_ids }) :: auth.http_result<nil>
-end
-local function delete_thumbnail(session: auth.cookie_session, subject: universe_identity, thumbnail_id: number)
-	local url = `https://develop.roblox.com/v1/universes/{subject.universe_id}/thumbnails/{thumbnail_id}`
-	return auth.request_json(session, 'DELETE', url) :: auth.http_result<nil>
+local COOKIE: web.auth_spec = { cookie = {} }
+
+local UNIVERSE = table.freeze { universe_id = 0 }
+local THUMBNAIL = table.freeze { universe_id = 0, thumbnail_id = 0 }
+type universe_path = typeof(UNIVERSE)
+type thumbnail_path = typeof(THUMBNAIL)
+
+local function image_request(self: any, auth: web.auth, path: universe_path, image: buffer)
+	return web.build(self, auth, { path = path, body = { ['request.files'] = image } })
 end
 
 -- module
 return table.freeze {
-	upload_icon = upload_icon,
-	remove_icon = remove_icon,
-	upload_thumbnail = upload_thumbnail,
-	list_thumbnails = list_thumbnails,
-	set_thumbnail_order = set_thumbnail_order,
-	delete_thumbnail = delete_thumbnail,
+	upload_icon = web.endpoint {
+		base = 'https://publish.roblox.com/v1/games/{universe_id}/icon',
+		method = 'POST',
+		auth = COOKIE,
+		path = UNIVERSE,
+		content_type = 'multipart/form-data',
+		request = image_request,
+	} :: endpoint<universe_path, nil, buffer, upload_response>,
+
+	remove_icon = web.endpoint {
+		base = 'https://www.roblox.com/places/icons/remove-icon',
+		method = 'POST',
+		auth = COOKIE,
+		path = nil,
+		content_type = 'application/x-www-form-urlencoded',
+		request = function(self, auth, _, body)
+			return web.build(
+				self,
+				auth,
+				{ body = buffer.fromstring(`placeId={body.placeId}&placeIconId={body.placeIconId}`) }
+			)
+		end,
+	} :: endpoint<nil, nil, remove_icon_body, nil>,
+
+	upload_thumbnail = web.endpoint {
+		base = 'https://publish.roblox.com/v1/games/{universe_id}/thumbnail/image',
+		method = 'POST',
+		auth = COOKIE,
+		path = UNIVERSE,
+		content_type = 'multipart/form-data',
+		request = image_request,
+	} :: endpoint<universe_path, nil, buffer, upload_response>,
+
+	list_thumbnails = web.endpoint {
+		base = 'https://games.roblox.com/v1/games/{universe_id}/media',
+		method = 'GET',
+		auth = COOKIE,
+		path = UNIVERSE,
+	} :: endpoint<universe_path, nil, nil, { data: { media_item } }>,
+
+	set_thumbnail_order = web.endpoint {
+		base = 'https://develop.roblox.com/v1/universes/{universe_id}/thumbnails/order',
+		method = 'POST',
+		auth = COOKIE,
+		path = UNIVERSE,
+		content_type = 'application/json',
+	} :: endpoint<universe_path, nil, { thumbnailIds: { number } }, nil>,
+
+	delete_thumbnail = web.endpoint {
+		base = 'https://develop.roblox.com/v1/universes/{universe_id}/thumbnails/{thumbnail_id}',
+		method = 'DELETE',
+		auth = COOKIE,
+		path = THUMBNAIL,
+	} :: endpoint<thumbnail_path, nil, nil, nil>,
 }

@@ -1,17 +1,18 @@
 local cloud = require '@lib'
 local config = require '../config'
+local fetch = require('@utils/fetch').fetch
 
-local id = { universe_id = config.universe_id }
+local auth = config.auth
 local run = {}
 
 function run.get()
-	local res = cloud.universe.get(config.session, id)
+	local res = fetch(cloud.universe.get, auth, { universe_id = config.universe_id })
 	assert(res.ok and res.body.path, 'missing path')
 end
 
 function run.list_secrets()
-	local res = cloud.universe_secret.list(config.session, id)
-	assert(res.ok)
+	local res = fetch(cloud.universe_secret.list, auth, { universe_id = config.universe_id })
+	assert(res.ok, `failed: {res.message}`)
 end
 
 return run

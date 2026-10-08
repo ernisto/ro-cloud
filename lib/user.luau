@@ -1,9 +1,7 @@
-local auth = require './auth'
+local web = require './web'
+type endpoint<P, Q, B, R> = web.endpoint<P, Q, B, R>
 
 -- defs
-export type identity = { user_id: number }
-export type subscription_identity = { universe_id: number, subscription_product_id: string, subscription_id: string }
-
 type social_network_profiles = {
 	facebook: string?,
 	twitter: string?,
@@ -25,6 +23,8 @@ export type user_data = {
 	idVerified: boolean?,
 	socialNetworkProfiles: social_network_profiles?,
 }
+
+export type authenticated_user = { id: number, name: string, displayName: string }
 
 export type inventory_item = {
 	path: string?,
@@ -49,44 +49,66 @@ export type subscription = {
 	user: string?,
 }
 
-type page_query = { maxPageSize: number?, pageToken: string?, filter: string? }
-
--- functions
-local function get(session: auth.apikey_session | auth.oauth2_session, subject: identity)
-	local url = `https://apis.roblox.com/cloud/v2/users/{subject.user_id}`
-	return auth.request_json(session, 'GET', url) :: auth.http_result<user_data>
-end
-
 -- TODO: complete from Roblox cloud docs
 export type inventory_page = { inventoryItems: { inventory_item }, nextPageToken: string? }
-local function list_inventory(session: auth.apikey_session | auth.oauth2_session, subject: identity, query: page_query?)
-	local url = `https://apis.roblox.com/cloud/v2/users/{subject.user_id}/inventory-items`
-	return auth.request_json(session, 'GET', url, query) :: auth.http_result<inventory_page>
-end
 
-local function send_notification(
-	session: auth.apikey_session | auth.oauth2_session,
-	subject: identity,
-	notification: notification
-)
-	local url = `https://apis.roblox.com/cloud/v2/users/{subject.user_id}/notifications`
-	return auth.request_json(session, 'POST', url, nil, notification) :: auth.http_result<notification>
-end
+local COOKIE: web.auth_spec = { cookie = {} }
+local READ: web.auth_spec = { apikey = { scope = { ['user.advanced:read'] = true, ['user.social:read'] = true } } }
+local INVENTORY_READ: web.auth_spec = { apikey = { scope = { ['user.inventory-item:read'] = true } } }
+local NOTIFICATION_WRITE: web.auth_spec = { apikey = { scope = { ['user.user-notification:write'] = true } } }
+local SUBSCRIPTION_READ: web.auth_spec =
+	{ apikey = { scope = { ['universe.subscription-product.subscription:read'] = true } } }
 
-local function get_subscription(
-	session: auth.apikey_session | auth.oauth2_session,
-	subject: subscription_identity,
-	view: string?
-)
-	local url =
-		`https://apis.roblox.com/cloud/v2/universes/{subject.universe_id}/subscription-products/{subject.subscription_product_id}/subscriptions/{subject.subscription_id}`
-	return auth.request_json(session, 'GET', url, { view = view }) :: auth.http_result<subscription>
-end
+local USER = table.freeze { user_id = 0 }
+local SUBSCRIPTION = table.freeze { universe_id = 0, subscription_product_id = '', subscription_id = '' }
+local PAGE = table.freeze { maxPageSize = 0 :: number?, pageToken = '' :: string?, filter = '' :: string? }
+type user_path = typeof(USER)
+type subscription_path = typeof(SUBSCRIPTION)
+export type page_query = typeof(PAGE)
 
 -- module
 return table.freeze {
-	get = get,
-	list_inventory = list_inventory,
-	send_notification = send_notification,
-	get_subscription = get_subscription,
+	get = web.endpoint {
+		base = 'https://apis.roblox.com/cloud/v2/users/{user_id}',
+		method = 'GET',
+		-- both scopes are optional, each one unlocks more fields
+		auth = READ,
+		ratelimit = { apikey = 1000 },
+		path = USER,
+	} :: endpoint<user_path, nil, nil, user_data>,
+
+	-- the user owning the cookie
+	get_authenticated = web.endpoint {
+		base = 'https://users.roblox.com/v1/users/authenticated',
+		method = 'GET',
+		auth = COOKIE,
+		path = nil,
+	} :: endpoint<nil, nil, nil, authenticated_user>,
+
+	list_inventory = web.endpoint {
+		base = 'https://apis.roblox.com/cloud/v2/users/{user_id}/inventory-items',
+		method = 'GET',
+		auth = INVENTORY_READ,
+		ratelimit = { apikey = 100 },
+		path = USER,
+		query = PAGE,
+	} :: endpoint<user_path, page_query, nil, inventory_page>,
+
+	send_notification = web.endpoint {
+		base = 'https://apis.roblox.com/cloud/v2/users/{user_id}/notifications',
+		method = 'POST',
+		auth = NOTIFICATION_WRITE,
+		ratelimit = { apikey = 240_000 },
+		path = USER,
+		content_type = 'application/json',
+	} :: endpoint<user_path, nil, notification, notification>,
+
+	get_subscription = web.endpoint {
+		base = 'https://apis.roblox.com/cloud/v2/universes/{universe_id}/subscription-products/{subscription_product_id}/subscriptions/{subscription_id}',
+		method = 'GET',
+		auth = SUBSCRIPTION_READ,
+		ratelimit = { apikey = 500 },
+		path = SUBSCRIPTION,
+		query = { view = '' :: string? },
+	} :: endpoint<subscription_path, { view: string? }, nil, subscription>,
 }

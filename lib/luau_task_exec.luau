@@ -1,11 +1,9 @@
-local auth = require './auth'
-local place = require './place'
-
-type json = auth.json
+local web = require './web'
+type endpoint<P, Q, B, R> = web.endpoint<P, Q, B, R>
+type json = any
 
 -- defs
 type date = string
-type task_path = string
 
 export type error_code =
 	| 'ERROR_CODE_UNSPECIFIED' --	UNSPECIFIED
@@ -15,7 +13,7 @@ export type error_code =
 	| 'INTERNAL_ERROR' --	The Task failed due to an internal system error.
 
 -- shared
-type task_base = identity & { user: string, timeout: string? }
+type task_base = { path: string, user: string, timeout: string? }
 type done_base = task_base & { createTime: date, updateTime: date }
 
 -- per-state types
@@ -27,7 +25,6 @@ export type cancelled_task = done_base & { state: 'CANCELLED' }
 export type done_task = failed_task | complete_task | cancelled_task
 export type task = pending_task | failed_task | complete_task | cancelled_task
 
-export type identity = { path: string }
 export type task_input = { script: string, timeout: number? }
 
 export type binary_input = { path: string?, content: buffer?, size: string? }
@@ -57,55 +54,58 @@ export type flat_task_log = {
 	messages: { string },
 }
 
-type response = response_flat | response_structured
-type response_flat = { luauExecutionSessionTaskLogs: { flat_task_log }, nextPageToken: string? }
-type response_structured = { luauExecutionSessionTaskLogs: { structured_task_log }, nextPageToken: string? }
+export type logs_page = { luauExecutionSessionTaskLogs: { task_log }, nextPageToken: string? }
 
-type query = structured_query | flat_query
-type structured_query = {
-	max_page_size: number?,
-	page_token: string?,
-	view: nil
-		| 'UNSPECIFIED' --	The luau execution session task log view is not specified; the default will be used.
-		| 'STRUCTURED', --	If this view is selected, the structuredMessages field will be populated (and the messages field will not). Each entry of the structuredMessages array contains the log message plus additional metadata (see LogMessage for details).
+local PLACE = 'https://apis.roblox.com/cloud/v2/universes/{universe_id}/places/{place_id}'
+local READ: web.auth_spec = { apikey = { scope = { ['universe.place.luau-execution-session:read'] = true } } }
+local WRITE: web.auth_spec = { apikey = { scope = { ['universe.place.luau-execution-session:write'] = true } } }
+
+local LOGS = table.freeze {
+	maxPageSize = 0 :: number?,
+	pageToken = '' :: string?,
+	-- 'FLAT' (default) fills `messages`, 'STRUCTURED' fills `structuredMessages`
+	view = 'FLAT' :: ('VIEW_UNSPECIFIED' | 'FLAT' | 'STRUCTURED')?,
 }
-type flat_query = {
-	max_page_size: number?,
-	page_token: string?,
-	view: 'FLAT', --	If this view is selected, the messages field will be populated (and the structuredMessages field will not). Each entry of the messages array contains only the log message, without additional medata. This is the default.
-}
+export type logs_query = typeof(LOGS)
 
-type list = list_flat & list_structured
-type list_flat = (session: auth.apikey_session, subject: identity, query: flat_query) -> auth.http_result<response_flat>
-type list_structured = (
-	session: auth.apikey_session,
-	subject: identity,
-	query: structured_query
-) -> auth.http_result<response_structured>
-
--- functions
-local function create(session: auth.apikey_session, subject: place.identity | place.version_identity, task: task_input)
-	local version = (subject :: any).version
-	local url = if version
-		then `https://apis.roblox.com/cloud/v2/universes/{subject.universe_id}/places/{subject.place_id}/versions/{version}/luau-execution-session-tasks`
-		else `https://apis.roblox.com/cloud/v2/universes/{subject.universe_id}/places/{subject.place_id}/luau-execution-session-tasks`
-
-	return auth.request_json(session, 'POST', url, {}, task) :: auth.http_result<pending_task>
-end
-
-local function get(session: auth.apikey_session, subject: identity)
-	local url = `https://apis.roblox.com/cloud/v2/{subject.path}`
-	return auth.request_json(session, 'GET', url) :: auth.http_result<task>
-end
-
-local function list(session: auth.apikey_session, subject: identity, query: query)
-	local url = `https://apis.roblox.com/cloud/v2/{subject.path}/logs`
-	return auth.request_json(session, 'GET', url, query) :: auth.http_result<response>
-end
+local TASKS = table.freeze { universe_id = 0, place_id = 0, version = 0 :: number? }
+local TASK = table.freeze { path = '' }
+type tasks_path = typeof(TASKS)
+type task_path = typeof(TASK)
 
 -- module
 return table.freeze {
-	create = create,
-	get = get,
-	list_logs = (list :: any) :: list,
+	-- `version` is optional, defaults to the latest place version
+	create = web.endpoint {
+		base = `{PLACE}/luau-execution-session-tasks`,
+		method = 'POST',
+		auth = WRITE,
+		ratelimit = { apikey = 5 },
+		path = TASKS,
+		content_type = 'application/json',
+		request = function(self, auth, path, task)
+			local base = if path.version
+				then `{PLACE}/versions/\{version}/luau-execution-session-tasks`
+				else `{PLACE}/luau-execution-session-tasks`
+			return web.build(self, auth, { base = base, path = path, body = task })
+		end,
+	} :: endpoint<tasks_path, nil, task_input, pending_task>,
+
+	-- `path` is the task path, as returned in `task.path`
+	get = web.endpoint {
+		base = 'https://apis.roblox.com/cloud/v2/{path}',
+		method = 'GET',
+		auth = READ,
+		ratelimit = { apikey = 200 },
+		path = TASK,
+	} :: endpoint<task_path, nil, nil, task>,
+
+	list_logs = web.endpoint {
+		base = 'https://apis.roblox.com/cloud/v2/{path}/logs',
+		method = 'GET',
+		auth = READ,
+		ratelimit = { apikey = 45 },
+		path = TASK,
+		query = LOGS,
+	} :: endpoint<task_path, logs_query, nil, logs_page>,
 }

@@ -34,15 +34,15 @@ local function form_builder()
 		return self
 	end
 
-	function self.build(): string
+	function self.build(): buffer
 		insert_value(parts, `--{boundary}--`)
-		return table.concat(parts)
+		return buffer.fromstring(table.concat(parts))
 	end
 
 	return self
 end
 
-local function form_by_table(fields: {}): string
+local function form_by_table(fields: {}): (buffer, string)
 	local f = form_builder()
 	for name, value in fields :: any do
 		if type(value) == 'buffer' then

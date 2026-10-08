@@ -1,16 +1,17 @@
 local cloud = require '@lib'
 local config = require '../config'
+local fetch = require('@utils/fetch').fetch
 
-local id = { group_id = config.group_id }
+local auth = config.auth
 local run = {}
 
 function run.get()
-	local res = cloud.group.get(config.session, id)
+	local res = fetch(cloud.group.get, auth, { group_id = config.group_id })
 	assert(res.ok and res.body.path, 'missing path')
 end
 
 function run.list_roles()
-	local res = cloud.group.list_roles(config.session, id, { maxPageSize = 1 })
+	local res = fetch(cloud.group.list_roles, auth, { group_id = config.group_id }, nil, { maxPageSize = 1 })
 	assert(res.ok, `failed: {res.message}`)
 
 	local list = res.body.groupRoles
@@ -18,7 +19,7 @@ function run.list_roles()
 end
 
 function run.list_memberships()
-	local res = cloud.group.list_memberships(config.session, id, { maxPageSize = 1 })
+	local res = fetch(cloud.group.list_memberships, auth, { group_id = config.group_id }, nil, { maxPageSize = 1 })
 	assert(res.ok, `failed: {res.message}`)
 
 	local list = res.body.groupMemberships

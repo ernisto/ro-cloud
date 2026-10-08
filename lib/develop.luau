@@ -1,7 +1,6 @@
-local auth = require '@lib/auth'
-local group = require '@lib/group'
-local place_configuration = require '@lib/place_configuration'
-local universe = require '@lib/universe'
+local place_configuration = require './place_configuration'
+local web = require './web'
+type endpoint<P, Q, B, R> = web.endpoint<P, Q, B, R>
 
 -- defs
 type date = string
@@ -21,37 +20,62 @@ export type dev_universe = {
 	privacyType: 'Public' | 'Private' | 'Group',
 }
 
-type page_query = { limit: number?, cursor: string?, sortOrder: 'Asc' | 'Desc'?, isArchived: boolean? }
 type page<Element> = { nextPageCursor: string?, prevPageCursor: string, data: { Element } }
 
-type place_list_query = { isUniverseCreation: boolean?, limit: number?, cursor: string?, sortOrder: 'Asc' | 'Desc'? }
 type place_page<Element> = { previousPageCursor: string?, nextPageCursor: string?, data: { Element } }
 
--- functions
-local function get_user_universes(session: auth.cookie_session, query: page_query?)
-	local url = `https://develop.roblox.com/v1/user/universes`
-	return auth.request_json(session, 'GET', url, query) :: auth.http_result<page<dev_universe>>
-end
+local COOKIE: web.auth_spec = { cookie = {} }
 
-local function get_group_universes(session: auth.cookie_session, subject: group.identity, query: page_query?)
-	local url = `https://develop.roblox.com/v1/groups/{subject.group_id}/universes`
-	return auth.request_json(session, 'GET', url, query) :: auth.http_result<page<dev_universe>>
-end
-
-local function get_groups(session: auth.cookie_session)
-	local url = `https://develop.roblox.com/v1/user/groups/canmanagegamesoritems`
-	return auth.request_json(session, 'GET', url) :: auth.http_result<{ data: { dev_group } }>
-end
-
-local function list_universe_places(session: auth.cookie_session, subject: universe.identity, query: place_list_query?)
-	local url = `https://develop.roblox.com/v1/universes/{subject.universe_id}/places`
-	return auth.request_json(session, 'GET', url, query) :: auth.http_result<place_page<place_configuration.place_data>>
-end
+local PAGE = table.freeze {
+	limit = 0 :: number?,
+	cursor = '' :: string?,
+	sortOrder = 'Asc' :: ('Asc' | 'Desc')?,
+	isArchived = false :: boolean?,
+}
+local PLACE_LIST = table.freeze {
+	isUniverseCreation = false :: boolean?,
+	limit = 0 :: number?,
+	cursor = '' :: string?,
+	sortOrder = 'Asc' :: ('Asc' | 'Desc')?,
+}
+export type page_query = typeof(PAGE)
+export type place_list_query = typeof(PLACE_LIST)
 
 -- module
 return table.freeze {
-	get_group_universes = get_group_universes,
-	get_user_universes = get_user_universes,
-	get_groups = get_groups,
-	list_universe_places = list_universe_places,
+	get_user_universes = web.endpoint {
+		base = 'https://develop.roblox.com/v1/user/universes',
+		method = 'GET',
+		auth = COOKIE,
+		path = nil,
+		query = PAGE,
+	} :: endpoint<nil, page_query, nil, page<dev_universe>>,
+
+	get_group_universes = web.endpoint {
+		base = 'https://develop.roblox.com/v1/groups/{group_id}/universes',
+		method = 'GET',
+		auth = COOKIE,
+		path = { group_id = 0 },
+		query = PAGE,
+	} :: endpoint<{ group_id: number }, page_query, nil, page<dev_universe>>,
+
+	get_groups = web.endpoint {
+		base = 'https://develop.roblox.com/v1/user/groups/canmanagegamesoritems',
+		method = 'GET',
+		auth = COOKIE,
+		path = nil,
+	} :: endpoint<nil, nil, nil, { data: { dev_group } }>,
+
+	list_universe_places = web.endpoint {
+		base = 'https://develop.roblox.com/v1/universes/{universe_id}/places',
+		method = 'GET',
+		auth = COOKIE,
+		path = { universe_id = 0 },
+		query = PLACE_LIST,
+	} :: endpoint<
+		{ universe_id: number },
+		place_list_query,
+		nil,
+		place_page<place_configuration.place_data>
+	>,
 }

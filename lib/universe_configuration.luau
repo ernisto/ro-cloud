@@ -1,9 +1,7 @@
-local auth = require '@lib/auth'
-local universe = require '@lib/universe'
+local web = require './web'
+type endpoint<P, Q, B, R> = web.endpoint<P, Q, B, R>
 
 -- defs
-export type identity = universe.identity
-
 type avatar_scale_patch = {
 	height: number?,
 	width: number?,
@@ -102,18 +100,25 @@ export type settings_data_v2 = settings_data_v1 & {
 	optInRegions: { { region: number, status: string } }?,
 }
 
--- functions
-local function get(session: auth.cookie_session, subject: identity)
-	local url = `https://develop.roblox.com/v1/universes/{subject.universe_id}/configuration`
-	return auth.request_json(session, 'GET', url) :: auth.http_result<settings_data_v1>
-end
-local function update(session: auth.cookie_session, subject: identity, patch: settings_patch_v2)
-	local url = `https://develop.roblox.com/v2/universes/{subject.universe_id}/configuration`
-	return auth.request_json(session, 'PATCH', url, nil, patch) :: auth.http_result<settings_data_v2>
-end
+local COOKIE: web.auth_spec = { cookie = {} }
+
+local UNIVERSE = table.freeze { universe_id = 0 }
+type universe_path = typeof(UNIVERSE)
 
 -- module
 return table.freeze {
-	get = get,
-	update = update,
+	get = web.endpoint {
+		base = 'https://develop.roblox.com/v1/universes/{universe_id}/configuration',
+		method = 'GET',
+		auth = COOKIE,
+		path = UNIVERSE,
+	} :: endpoint<universe_path, nil, nil, settings_data_v1>,
+
+	update = web.endpoint {
+		base = 'https://develop.roblox.com/v2/universes/{universe_id}/configuration',
+		method = 'PATCH',
+		auth = COOKIE,
+		path = UNIVERSE,
+		content_type = 'application/json',
+	} :: endpoint<universe_path, nil, settings_patch_v2, settings_data_v2>,
 }

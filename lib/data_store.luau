@@ -1,18 +1,7 @@
-local auth = require './auth'
-local universe = require './universe'
+local web = require './web'
+type endpoint<P, Q, B, R> = web.endpoint<P, Q, B, R>
 
 -- defs
-export type store_identity = { universe_id: number, data_store_id: string, scope_id: string? }
-export type entry_identity = store_identity & { entry_id: string }
-
-export type ordered_store_identity = { universe_id: number, ordered_data_store_id: string, scope_id: string }
-export type ordered_entry_identity = {
-	universe_id: number,
-	ordered_data_store_id: string,
-	scope_id: string,
-	entry_id: string,
-}
-
 export type data_store = { path: string?, createTime: string?, expireTime: string?, state: string?, id: string? }
 export type entry = {
 	path: string?,
@@ -27,8 +16,7 @@ export type entry = {
 	attributes: any?,
 }
 export type ordered_entry = { path: string?, value: number?, id: string? }
-
-type page_query = { maxPageSize: number?, pageToken: string?, filter: string? }
+export type increment = { amount: number, users: { string }?, attributes: any? }
 
 -- TODO: complete from Roblox cloud docs
 export type stores_page = { dataStores: { data_store }, nextPageToken: string? }
@@ -41,161 +29,231 @@ export type ordered_entries_page = { orderedDataStoreEntries: { ordered_entry },
 -- TODO: complete from Roblox cloud docs
 export type snapshot_result = { newSnapshotTaken: boolean?, latestSnapshotTime: string? }
 
+local STORE = 'https://apis.roblox.com/cloud/v2/universes/{universe_id}/data-stores/{data_store_id}'
+local SCOPED = `{STORE}/scopes/\{scope_id}`
+local ORDERED =
+	'https://apis.roblox.com/cloud/v2/universes/{universe_id}/ordered-data-stores/{ordered_data_store_id}/scopes/{scope_id}'
+
+local RATELIMIT: web.ratelimit = { apikey = 1_000_000 }
+local function scoped(scope: string): web.auth_spec
+	return { apikey = { scope = { [scope] = true } } }
+end
+
+local CONTROL_SNAPSHOT = scoped 'universe-datastores.control:snapshot'
+local CONTROL_LIST = scoped 'universe-datastores.control:list'
+local CONTROL_DELETE = scoped 'universe-datastores.control:delete'
+local OBJECTS_LIST = scoped 'universe-datastores.objects:list'
+local OBJECTS_CREATE = scoped 'universe-datastores.objects:create'
+local OBJECTS_READ = scoped 'universe-datastores.objects:read'
+local OBJECTS_UPDATE = scoped 'universe-datastores.objects:update'
+local OBJECTS_DELETE = scoped 'universe-datastores.objects:delete'
+local VERSIONS_LIST = scoped 'universe-datastores.versions:list'
+local OBJECTS_INCREMENT: web.auth_spec = {
+	apikey = {
+		scope = { ['universe-datastores.objects:create'] = true, ['universe-datastores.objects:update'] = true },
+	},
+}
+local ORDERED_READ = scoped 'universe.ordered-data-store.scope.entry:read'
+local ORDERED_WRITE = scoped 'universe.ordered-data-store.scope.entry:write'
+
+local UNIVERSE = table.freeze { universe_id = 0 }
+local STORE_PATH = table.freeze { universe_id = 0, data_store_id = '' }
+local SCOPE_PATH = table.freeze { universe_id = 0, data_store_id = '', scope_id = '' :: string? }
+local ENTRY_PATH = table.freeze { universe_id = 0, data_store_id = '', scope_id = '' :: string?, entry_id = '' }
+local ORDERED_PATH = table.freeze { universe_id = 0, ordered_data_store_id = '', scope_id = '' }
+local ORDERED_ENTRY_PATH = table.freeze { universe_id = 0, ordered_data_store_id = '', scope_id = '', entry_id = '' }
+local PAGE = table.freeze {
+	maxPageSize = 0 :: number?,
+	pageToken = '' :: string?,
+	filter = '' :: string?,
+	showDeleted = false :: boolean?,
+}
+local ORDERED_PAGE = table.freeze {
+	maxPageSize = 0 :: number?,
+	pageToken = '' :: string?,
+	orderBy = '' :: string?,
+	filter = '' :: string?,
+}
+local ALLOW_MISSING = table.freeze { allowMissing = false :: boolean? }
+type universe_path = typeof(UNIVERSE)
+type store_path = typeof(STORE_PATH)
+type scope_path = typeof(SCOPE_PATH)
+type entry_path = typeof(ENTRY_PATH)
+type ordered_path = typeof(ORDERED_PATH)
+type ordered_entry_path = typeof(ORDERED_ENTRY_PATH)
+export type page_query = typeof(PAGE)
+export type ordered_page_query = typeof(ORDERED_PAGE)
+export type allow_missing_query = typeof(ALLOW_MISSING)
+
 -- helpers
-local function store_path(subject: store_identity | entry_identity)
-	local url = `https://apis.roblox.com/cloud/v2/universes/{subject.universe_id}/data-stores/{subject.data_store_id}`
-
-	local scope = (subject :: any).scope_id
-	if scope then
-		url ..= `/scopes/{scope}`
+-- `scope_id` is an optional path segment, so the base is picked per request
+local function store_request(suffix: string)
+	return function(self: any, auth: web.auth, path: scope_path, body: any, query: any): web.request
+		local base = (if path.scope_id then SCOPED else STORE) .. suffix
+		return web.build(self, auth, { base = base, path = path, body = body, query = query })
 	end
-
-	local entry = (subject :: any).entry_id
-	if entry then
-		url ..= `entries/{entry}`
-	end
-
-	return url
 end
-local function ordered_store_path(subject: ordered_store_identity | ordered_entry_identity)
-	local url =
-		`https://apis.roblox.com/cloud/v2/universes/{subject.universe_id}/ordered-data-stores/{subject.ordered_data_store_id}`
-
-	local scope = (subject :: any).scope_id
-	if scope then
-		url ..= `/scopes/{scope}`
-	end
-
-	local entry = (subject :: any).entry_id
-	if entry then
-		url ..= `entries/{entry}`
-	end
-
-	return url
-end
-
--- functions
-local function snapshot(session: auth.apikey_session, subject: universe.identity)
-	local url = `https://apis.roblox.com/cloud/v2/universes/{subject.universe_id}/data-stores:snapshot`
-	return auth.request_json(session, 'POST', url) :: auth.http_result<snapshot_result>
-end
-local function list_stores(session: auth.apikey_session, subject: universe.identity, query: page_query?)
-	local url = `https://apis.roblox.com/cloud/v2/universes/{subject.universe_id}/data-stores`
-	return auth.request_json(session, 'GET', url, query) :: auth.http_result<stores_page>
-end
-
-local function delete_store(session: auth.apikey_session, subject: store_identity)
-	local url = `{store_path(subject)}`
-	return auth.request_json(session, 'DELETE', url) :: auth.http_result<data_store>
-end
-local function undelete_store(session: auth.apikey_session, subject: store_identity)
-	local url = `{store_path(subject)}:undelete`
-	return auth.request_json(session, 'POST', url) :: auth.http_result<data_store>
-end
-
-local function list_entries(session: auth.apikey_session, subject: store_identity, query: page_query?)
-	local url = `{store_path(subject)}/entries`
-	return auth.request_json(session, 'GET', url, query) :: auth.http_result<entries_page>
-end
-
-local function create_entry(session: auth.apikey_session, subject: store_identity, id: string?, data: entry)
-	local url = `{store_path(subject)}/entries`
-	return auth.request_json(session, 'POST', url, { id = id }, data) :: auth.http_result<entry>
-end
-local function get_entry(session: auth.apikey_session, subject: entry_identity)
-	local url = store_path(subject)
-	return auth.request_json(session, 'GET', url) :: auth.http_result<entry>
-end
-local function delete_entry(session: auth.apikey_session, subject: entry_identity)
-	local url = store_path(subject)
-	return auth.request_json(session, 'DELETE', url) :: auth.http_result<nil>
-end
-
-local function update_entry(session: auth.apikey_session, subject: entry_identity, data: entry, allow_missing: boolean?)
-	local url = store_path(subject)
-	return auth.request_json(session, 'PATCH', url, { allowMissing = true }, data) :: auth.http_result<entry>
-end
-local function increment_entry(
-	session: auth.apikey_session,
-	subject: entry_identity,
-	amount: number,
-	users: { string }?,
-	attributes: any?
-)
-	local url = `{store_path(subject)}:increment`
-	local data = { amount = amount, users = users, attributes = attributes }
-	return auth.request_json(session, 'POST', url, nil, data) :: auth.http_result<entry>
-end
-
-local function list_entry_revisions(session: auth.apikey_session, subject: entry_identity, query: page_query?)
-	local url = `{store_path(subject)}:listRevisions`
-	return auth.request_json(session, 'GET', url, query) :: auth.http_result<entry_revisions_page>
-end
-
-type ordered_page_query = { maxPageSize: number?, pageToken: string?, orderBy: string?, filter: string? }
-local function list_ordered_entries(
-	session: auth.apikey_session,
-	subject: ordered_store_identity,
-	query: ordered_page_query?
-)
-	local url = `{ordered_store_path(subject)}/entries`
-	return auth.request_json(session, 'GET', url, query) :: auth.http_result<ordered_entries_page>
-end
-
-local function create_ordered_entry(
-	session: auth.apikey_session,
-	subject: ordered_store_identity,
-	id: string?,
-	value: number
-)
-	local url = `{ordered_store_path(subject)}/entries`
-	return auth.request_json(session, 'POST', url, { id = id }, { value = value }) :: auth.http_result<ordered_entry>
-end
-
-local function get_ordered_entry(session: auth.apikey_session, subject: ordered_entry_identity)
-	local url = ordered_store_path(subject)
-	return auth.request_json(session, 'GET', url) :: auth.http_result<ordered_entry>
-end
-
-local function update_ordered_entry(
-	session: auth.apikey_session,
-	subject: ordered_entry_identity,
-	value: number,
-	allow_missing: boolean?
-)
-	local query = { allowMissing = allow_missing }
-	local url = ordered_store_path(subject)
-	return auth.request_json(session, 'PATCH', url, query, { value = value }) :: auth.http_result<ordered_entry>
-end
-
-local function delete_ordered_entry(session: auth.apikey_session, subject: ordered_entry_identity)
-	local url = ordered_store_path(subject)
-	return auth.request_json(session, 'DELETE', url) :: auth.http_result<nil>
-end
-
-local function increment_ordered_entry(session: auth.apikey_session, subject: ordered_entry_identity, amount: number)
-	local url = `{ordered_store_path(subject)}:increment`
-	return auth.request_json(session, 'POST', url, nil, { amount = amount }) :: auth.http_result<ordered_entry>
-end
+local entries_request = store_request '/entries'
+local entry_request = store_request '/entries/{entry_id}'
 
 -- module
 return table.freeze {
-	list_stores = list_stores,
-	delete_store = delete_store,
-	undelete_store = undelete_store,
-	snapshot = snapshot,
-	list_entries = list_entries,
-	create_entry = create_entry,
-	get_entry = get_entry,
-	update_entry = update_entry,
-	delete_entry = delete_entry,
-	increment_entry = increment_entry,
-	list_entry_revisions = list_entry_revisions,
+	snapshot = web.endpoint {
+		base = 'https://apis.roblox.com/cloud/v2/universes/{universe_id}/data-stores:snapshot',
+		method = 'POST',
+		auth = CONTROL_SNAPSHOT,
+		ratelimit = { apikey = 60 },
+		path = UNIVERSE,
+		content_type = 'application/json',
+	} :: endpoint<universe_path, nil, nil, snapshot_result>,
 
-	list_ordered_entries = list_ordered_entries,
-	create_ordered_entry = create_ordered_entry,
-	get_ordered_entry = get_ordered_entry,
-	update_ordered_entry = update_ordered_entry,
-	delete_ordered_entry = delete_ordered_entry,
-	increment_ordered_entry = increment_ordered_entry,
+	list_stores = web.endpoint {
+		base = 'https://apis.roblox.com/cloud/v2/universes/{universe_id}/data-stores',
+		method = 'GET',
+		auth = CONTROL_LIST,
+		ratelimit = RATELIMIT,
+		path = UNIVERSE,
+		query = PAGE,
+	} :: endpoint<universe_path, page_query, nil, stores_page>,
+
+	delete_store = web.endpoint {
+		base = STORE,
+		method = 'DELETE',
+		auth = CONTROL_DELETE,
+		ratelimit = RATELIMIT,
+		path = STORE_PATH,
+	} :: endpoint<store_path, nil, nil, data_store>,
+
+	undelete_store = web.endpoint {
+		base = `{STORE}:undelete`,
+		method = 'POST',
+		auth = CONTROL_DELETE,
+		ratelimit = RATELIMIT,
+		path = STORE_PATH,
+		content_type = 'application/json',
+	} :: endpoint<store_path, nil, nil, data_store>,
+
+	list_entries = web.endpoint {
+		base = `{STORE}/entries`,
+		method = 'GET',
+		auth = OBJECTS_LIST,
+		ratelimit = RATELIMIT,
+		path = SCOPE_PATH,
+		query = PAGE,
+		request = entries_request,
+	} :: endpoint<scope_path, page_query, nil, entries_page>,
+
+	create_entry = web.endpoint {
+		base = `{STORE}/entries`,
+		method = 'POST',
+		auth = OBJECTS_CREATE,
+		ratelimit = RATELIMIT,
+		path = SCOPE_PATH,
+		query = { id = '' :: string? },
+		content_type = 'application/json',
+		request = entries_request,
+	} :: endpoint<scope_path, { id: string? }, entry, entry>,
+
+	get_entry = web.endpoint {
+		base = `{STORE}/entries/\{entry_id}`,
+		method = 'GET',
+		auth = OBJECTS_READ,
+		ratelimit = RATELIMIT,
+		path = ENTRY_PATH,
+		request = entry_request,
+	} :: endpoint<entry_path, nil, nil, entry>,
+
+	update_entry = web.endpoint {
+		base = `{STORE}/entries/\{entry_id}`,
+		method = 'PATCH',
+		auth = OBJECTS_UPDATE,
+		ratelimit = RATELIMIT,
+		path = ENTRY_PATH,
+		query = ALLOW_MISSING,
+		content_type = 'application/json',
+		request = entry_request,
+	} :: endpoint<entry_path, allow_missing_query, entry, entry>,
+
+	delete_entry = web.endpoint {
+		base = `{STORE}/entries/\{entry_id}`,
+		method = 'DELETE',
+		auth = OBJECTS_DELETE,
+		ratelimit = RATELIMIT,
+		path = ENTRY_PATH,
+		request = entry_request,
+	} :: endpoint<entry_path, nil, nil, nil>,
+
+	increment_entry = web.endpoint {
+		base = `{STORE}/entries/\{entry_id}:increment`,
+		method = 'POST',
+		auth = OBJECTS_INCREMENT,
+		ratelimit = RATELIMIT,
+		path = ENTRY_PATH,
+		content_type = 'application/json',
+		request = store_request '/entries/{entry_id}:increment',
+	} :: endpoint<entry_path, nil, increment, entry>,
+
+	list_entry_revisions = web.endpoint {
+		base = `{STORE}/entries/\{entry_id}:listRevisions`,
+		method = 'GET',
+		auth = VERSIONS_LIST,
+		ratelimit = RATELIMIT,
+		path = ENTRY_PATH,
+		query = PAGE,
+		request = store_request '/entries/{entry_id}:listRevisions',
+	} :: endpoint<entry_path, page_query, nil, entry_revisions_page>,
+
+	list_ordered_entries = web.endpoint {
+		base = `{ORDERED}/entries`,
+		method = 'GET',
+		auth = ORDERED_READ,
+		ratelimit = RATELIMIT,
+		path = ORDERED_PATH,
+		query = ORDERED_PAGE,
+	} :: endpoint<ordered_path, ordered_page_query, nil, ordered_entries_page>,
+
+	create_ordered_entry = web.endpoint {
+		base = `{ORDERED}/entries`,
+		method = 'POST',
+		auth = ORDERED_WRITE,
+		ratelimit = RATELIMIT,
+		path = ORDERED_PATH,
+		query = { id = '' },
+		content_type = 'application/json',
+	} :: endpoint<ordered_path, { id: string }, { value: number }, ordered_entry>,
+
+	get_ordered_entry = web.endpoint {
+		base = `{ORDERED}/entries/\{entry_id}`,
+		method = 'GET',
+		auth = ORDERED_READ,
+		ratelimit = RATELIMIT,
+		path = ORDERED_ENTRY_PATH,
+	} :: endpoint<ordered_entry_path, nil, nil, ordered_entry>,
+
+	update_ordered_entry = web.endpoint {
+		base = `{ORDERED}/entries/\{entry_id}`,
+		method = 'PATCH',
+		auth = ORDERED_WRITE,
+		ratelimit = RATELIMIT,
+		path = ORDERED_ENTRY_PATH,
+		query = ALLOW_MISSING,
+		content_type = 'application/json',
+	} :: endpoint<ordered_entry_path, allow_missing_query, { value: number }, ordered_entry>,
+
+	delete_ordered_entry = web.endpoint {
+		base = `{ORDERED}/entries/\{entry_id}`,
+		method = 'DELETE',
+		auth = ORDERED_WRITE,
+		ratelimit = RATELIMIT,
+		path = ORDERED_ENTRY_PATH,
+	} :: endpoint<ordered_entry_path, nil, nil, nil>,
+
+	increment_ordered_entry = web.endpoint {
+		base = `{ORDERED}/entries/\{entry_id}:increment`,
+		method = 'POST',
+		auth = ORDERED_WRITE,
+		ratelimit = RATELIMIT,
+		path = ORDERED_ENTRY_PATH,
+		content_type = 'application/json',
+	} :: endpoint<ordered_entry_path, nil, { amount: number }, ordered_entry>,
 }

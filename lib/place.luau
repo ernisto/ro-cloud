@@ -1,12 +1,8 @@
-local asset = require './asset'
-local auth = require './auth'
-local universe = require './universe'
-type json = auth.json_object
+local web = require './web'
+type endpoint<P, Q, B, R> = web.endpoint<P, Q, B, R>
+type json = { [string]: any }
 
 -- defs
-export type version_identity = { universe_id: number, place_id: number, version: number }
-export type identity = { universe_id: number, place_id: number }
-
 export type info = {
 	path: string?,
 	createTime: string?,
@@ -21,76 +17,94 @@ export type info = {
 export type info_patch = { displayName: string?, description: string?, serverSize: number? }
 
 export type instance = { path: string?, hasChildren: boolean?, engineInstance: any? }
-export type instance_identity = { universe_id: number, place_id: number, instance_id: string }
-
-type page_query = { maxPageSize: number?, pageToken: string? }
 
 export type create_params = { templatePlaceId: number }
 export type create_response = { placeId: number }
 
--- functions
-local function create(session: auth.cookie_session, subject: universe.identity, params: create_params)
-	local url = `https://apis.roblox.com/universes/v1/user/universes/{subject.universe_id}/places`
-	return auth.request_json(session, 'POST', url, nil, params) :: auth.http_result<create_response>
-end
-local function upload(session: auth.apikey_session, subject: identity, file: buffer, do_publish: boolean?)
-	local version_type = if do_publish then 'Published' else 'Saved'
-	local url =
-		`https://apis.roblox.com/universes/v1/{subject.universe_id}/places/{subject.place_id}/versions?versionType={version_type}`
-	return auth.request_json(
-			session,
-			'POST',
-			url,
-			nil,
-			file,
-			'application/octet-stream'
-		) :: auth.http_result<{ versionNumber: number }>
-end
-local function download(
-	session: auth.apikey_session | auth.oauth2_session,
-	subject: { place_id: number, version: number? }
-)
-	return asset.download(session, { asset_id = subject.place_id, version = subject.version })
-end
+local INSTANCE_URL =
+	'https://apis.roblox.com/cloud/v2/universes/{universe_id}/places/{place_id}/instances/{instance_id}'
 
-local function get_info(session: auth.apikey_session | auth.oauth2_session, subject: identity)
-	local url = `https://apis.roblox.com/cloud/v2/universes/{subject.universe_id}/places/{subject.place_id}`
-	return auth.request_json(session, 'GET', url) :: auth.http_result<info>
-end
+local UNIVERSE = table.freeze { universe_id = 0 }
+local PLACE = table.freeze { universe_id = 0, place_id = 0 }
+local INSTANCE = table.freeze { universe_id = 0, place_id = 0, instance_id = '' }
+local UPLOAD = table.freeze { versionType = 'Saved' :: 'Saved' | 'Published' }
+local PAGE = table.freeze { maxPageSize = 0 :: number?, pageToken = '' :: string? }
+type universe_path = typeof(UNIVERSE)
+type place_path = typeof(PLACE)
+type instance_path = typeof(INSTANCE)
+export type upload_query = typeof(UPLOAD)
+export type page_query = typeof(PAGE)
 
-local function update_info(session: auth.apikey_session | auth.oauth2_session, subject: identity, patch: info_patch)
-	local url = `https://apis.roblox.com/cloud/v2/universes/{subject.universe_id}/places/{subject.place_id}`
-	local query = { updateMask = auth.mask_from(patch) }
-	return auth.request_json(session, 'PATCH', url, query, patch) :: auth.http_result<info>
-end
-
-local function get_instance(session: auth.apikey_session, subject: instance_identity)
-	local url =
-		`https://apis.roblox.com/cloud/v2/universes/{subject.universe_id}/places/{subject.place_id}/instances/{subject.instance_id}`
-	return auth.request_json(session, 'GET', url) :: auth.http_result<json>
-end
-
-local function update_instance(session: auth.apikey_session, subject: instance_identity, data: instance)
-	local url =
-		`https://apis.roblox.com/cloud/v2/universes/{subject.universe_id}/places/{subject.place_id}/instances/{subject.instance_id}`
-	local query = { updateMask = auth.mask_from(data) }
-	return auth.request_json(session, 'PATCH', url, query, data) :: auth.http_result<json>
-end
-
-local function list_instance_children(session: auth.apikey_session, subject: instance_identity, query: page_query?)
-	local url =
-		`https://apis.roblox.com/cloud/v2/universes/{subject.universe_id}/places/{subject.place_id}/instances/{subject.instance_id}:listChildren`
-	return auth.request_json(session, 'GET', url, query) :: auth.http_result<json>
-end
+local COOKIE: web.auth_spec = { cookie = {} }
+local NONE: web.auth_spec = { apikey = { scope = {} } }
+local PLACES_WRITE: web.auth_spec = { apikey = { scope = { ['universe-places:write'] = true } } }
+local WRITE: web.auth_spec = { apikey = { scope = { ['universe.place:write'] = true } } }
+local INSTANCE_READ: web.auth_spec = { apikey = { scope = { ['universe.place.instance:read'] = true } } }
+local INSTANCE_WRITE: web.auth_spec = { apikey = { scope = { ['universe.place.instance:write'] = true } } }
 
 -- module
 return table.freeze {
-	create = create,
-	upload = upload,
-	download = download,
-	get_info = get_info,
-	update_info = update_info,
-	get_instance = get_instance,
-	update_instance = update_instance,
-	list_instance_children = list_instance_children,
+	create = web.endpoint {
+		base = 'https://apis.roblox.com/universes/v1/user/universes/{universe_id}/places',
+		method = 'POST',
+		auth = COOKIE,
+		path = UNIVERSE,
+		content_type = 'application/json',
+	} :: endpoint<universe_path, nil, create_params, create_response>,
+
+	-- place file as `.rbxl` / `.rbxlx` bytes; `versionType = 'Published'` publishes instead of only saving
+	upload = web.endpoint {
+		base = 'https://apis.roblox.com/universes/v1/{universe_id}/places/{place_id}/versions',
+		method = 'POST',
+		auth = PLACES_WRITE,
+		ratelimit = { apikey = 30 },
+		path = PLACE,
+		query = UPLOAD,
+		content_type = 'application/octet-stream',
+	} :: endpoint<place_path, upload_query, buffer, { versionNumber: number }>,
+
+	get_info = web.endpoint {
+		base = 'https://apis.roblox.com/cloud/v2/universes/{universe_id}/places/{place_id}',
+		method = 'GET',
+		auth = NONE,
+		ratelimit = { apikey = 100 },
+		path = PLACE,
+	} :: endpoint<place_path, nil, nil, info>,
+
+	update_info = web.endpoint {
+		base = 'https://apis.roblox.com/cloud/v2/universes/{universe_id}/places/{place_id}',
+		method = 'PATCH',
+		auth = WRITE,
+		ratelimit = { apikey = 100 },
+		path = PLACE,
+		content_type = 'application/json',
+		request = web.with_update_mask,
+	} :: endpoint<place_path, nil, info_patch, info>,
+
+	get_instance = web.endpoint {
+		base = INSTANCE_URL,
+		method = 'GET',
+		auth = INSTANCE_READ,
+		ratelimit = { apikey = 45 },
+		path = INSTANCE,
+	} :: endpoint<instance_path, nil, nil, json>,
+
+	update_instance = web.endpoint {
+		base = INSTANCE_URL,
+		method = 'PATCH',
+		auth = INSTANCE_WRITE,
+		ratelimit = { apikey = 45 },
+		path = INSTANCE,
+		content_type = 'application/json',
+		request = web.with_update_mask,
+	} :: endpoint<instance_path, nil, instance, json>,
+
+	list_instance_children = web.endpoint {
+		base = `{INSTANCE_URL}:listChildren`,
+		method = 'GET',
+		auth = INSTANCE_READ,
+		ratelimit = { apikey = 45 },
+		path = INSTANCE,
+		query = PAGE,
+	} :: endpoint<instance_path, page_query, nil, json>,
 }

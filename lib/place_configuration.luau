@@ -1,9 +1,8 @@
-local auth = require '@lib/auth'
-
-type date = string
+local web = require './web'
+type endpoint<P, Q, B, R> = web.endpoint<P, Q, B, R>
 
 -- defs
-export type identity = { place_id: number }
+type date = string
 
 export type place_data = {
 	id: number,
@@ -34,18 +33,25 @@ export type place_patch = {
 	allowedGearTypes: { string }?,
 }
 
--- functions
-local function get(session: auth.cookie_session, subject: identity)
-	local url = `https://develop.roblox.com/v2/places/{subject.place_id}`
-	return auth.request_json(session, 'GET', url) :: auth.http_result<place_data>
-end
-local function update(session: auth.cookie_session, subject: identity, patch: place_patch)
-	local url = `https://develop.roblox.com/v2/places/{subject.place_id}`
-	return auth.request_json(session, 'PATCH', url, nil, patch) :: auth.http_result<place_data>
-end
+local COOKIE: web.auth_spec = { cookie = {} }
+
+local PLACE = table.freeze { place_id = 0 }
+type place_path = typeof(PLACE)
 
 -- module
 return table.freeze {
-	get = get,
-	update = update,
+	get = web.endpoint {
+		base = 'https://develop.roblox.com/v2/places/{place_id}',
+		method = 'GET',
+		auth = COOKIE,
+		path = PLACE,
+	} :: endpoint<place_path, nil, nil, place_data>,
+
+	update = web.endpoint {
+		base = 'https://develop.roblox.com/v2/places/{place_id}',
+		method = 'PATCH',
+		auth = COOKIE,
+		path = PLACE,
+		content_type = 'application/json',
+	} :: endpoint<place_path, nil, place_patch, place_data>,
 }

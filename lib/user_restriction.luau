@@ -1,11 +1,7 @@
-local auth = require './auth'
+local web = require './web'
+type endpoint<P, Q, B, R> = web.endpoint<P, Q, B, R>
 
 -- defs
-export type universe_identity = { universe_id: number }
-export type place_identity = { universe_id: number, place_id: number }
-export type restriction_identity = { universe_id: number, user_restriction_id: string }
-export type place_restriction_identity = { universe_id: number, place_id: number, user_restriction_id: string }
-
 type game_join_restriction = {
 	active: boolean?,
 	startTime: string?,
@@ -35,64 +31,81 @@ export type restriction_log = {
 	excludeAltAccounts: boolean?,
 }
 
-type page_query = { maxPageSize: number?, pageToken: string? }
-
 -- TODO: complete from Roblox cloud docs
 export type restrictions_page = { userRestrictions: { restriction }, nextPageToken: string? }
 -- TODO: complete from Roblox cloud docs
 export type restriction_logs_page = { logs: { restriction_log }, nextPageToken: string? }
 
--- functions
-local function list(
-	session: auth.apikey_session | auth.oauth2_session,
-	subject: universe_identity | place_identity,
-	query: page_query?
-)
-	local url = if (subject :: any).place_id
-		then `https://apis.roblox.com/cloud/v2/universes/{subject.universe_id}/places/{(subject :: any).place_id}/user-restrictions`
-		else `https://apis.roblox.com/cloud/v2/universes/{subject.universe_id}/user-restrictions`
+local UNIVERSE = 'https://apis.roblox.com/cloud/v2/universes/{universe_id}/user-restrictions'
+local PLACE = 'https://apis.roblox.com/cloud/v2/universes/{universe_id}/places/{place_id}/user-restrictions'
 
-	return auth.request_json(session, 'GET', url, query) :: auth.http_result<restrictions_page>
+local READ: web.auth_spec = { apikey = { scope = { ['universe.user-restriction:read'] = true } } }
+local WRITE: web.auth_spec = { apikey = { scope = { ['universe.user-restriction:write'] = true } } }
+local RATELIMIT: web.ratelimit = { apikey = 9000 }
+
+local SUBJECT = table.freeze { universe_id = 0, place_id = 0 :: number? }
+local RESTRICTION = table.freeze { universe_id = 0, place_id = 0 :: number?, user_restriction_id = '' }
+local UPDATE = table.freeze { ['idempotencyKey.key'] = '' :: string? }
+local PAGE = table.freeze { maxPageSize = 0 :: number?, pageToken = '' :: string? }
+local LOGS = table.freeze { maxPageSize = 0 :: number?, pageToken = '' :: string?, filter = '' :: string? }
+type subject_path = typeof(SUBJECT)
+type restriction_path = typeof(RESTRICTION)
+export type update_query = typeof(UPDATE)
+export type page_query = typeof(PAGE)
+export type logs_query = typeof(LOGS)
+
+-- helpers
+-- restrictions live on the universe, or on a single place when `place_id` is given
+local function subject_request(suffix: string)
+	return function(self: any, auth: web.auth, path: subject_path, body: any, query: any): web.request
+		local base = (if path.place_id then PLACE else UNIVERSE) .. suffix
+		return web.build(self, auth, { base = base, path = path, body = body, query = query })
+	end
 end
-
-local function get(
-	session: auth.apikey_session | auth.oauth2_session,
-	subject: restriction_identity | place_restriction_identity
-)
-	local url = if (subject :: any).place_id
-		then `https://apis.roblox.com/cloud/v2/universes/{subject.universe_id}/places/{(subject :: any).place_id}/user-restrictions/{subject.user_restriction_id}`
-		else `https://apis.roblox.com/cloud/v2/universes/{subject.universe_id}/user-restrictions/{subject.user_restriction_id}`
-
-	return auth.request_json(session, 'GET', url) :: auth.http_result<restriction>
-end
-
-local function update(
-	session: auth.apikey_session | auth.oauth2_session,
-	subject: restriction_identity | place_restriction_identity,
-	data: restriction,
-	idempotency_key: string?
-)
-	local url = if (subject :: any).place_id
-		then `https://apis.roblox.com/cloud/v2/universes/{subject.universe_id}/places/{(subject :: any).place_id}/user-restrictions/{subject.user_restriction_id}`
-		else `https://apis.roblox.com/cloud/v2/universes/{subject.universe_id}/user-restrictions/{subject.user_restriction_id}`
-
-	local query = { updateMask = auth.mask_from(data), ['idempotencyKey.key'] = idempotency_key }
-	return auth.request_json(session, 'PATCH', url, query, data) :: auth.http_result<restriction>
-end
-
-local function list_logs(
-	session: auth.apikey_session | auth.oauth2_session,
-	subject: universe_identity,
-	query: page_query?
-)
-	local url = `https://apis.roblox.com/cloud/v2/universes/{subject.universe_id}/user-restrictions:listLogs`
-	return auth.request_json(session, 'GET', url, query) :: auth.http_result<restriction_logs_page>
-end
+local restriction_request = subject_request '/{user_restriction_id}'
 
 -- module
 return table.freeze {
-	list = list,
-	get = get,
-	update = update,
-	list_logs = list_logs,
+	list = web.endpoint {
+		base = UNIVERSE,
+		method = 'GET',
+		auth = READ,
+		ratelimit = RATELIMIT,
+		path = SUBJECT,
+		query = PAGE,
+		request = subject_request '',
+	} :: endpoint<subject_path, page_query, nil, restrictions_page>,
+
+	get = web.endpoint {
+		base = `{UNIVERSE}/\{user_restriction_id}`,
+		method = 'GET',
+		auth = READ,
+		ratelimit = RATELIMIT,
+		path = RESTRICTION,
+		request = restriction_request,
+	} :: endpoint<restriction_path, nil, nil, restriction>,
+
+	update = web.endpoint {
+		base = `{UNIVERSE}/\{user_restriction_id}`,
+		method = 'PATCH',
+		auth = WRITE,
+		ratelimit = RATELIMIT,
+		path = RESTRICTION,
+		query = UPDATE,
+		content_type = 'application/json',
+		request = function(self, auth, path, data, query)
+			local params: any = if query then table.clone(query) else {}
+			params.updateMask = web.mask_from(data)
+			return restriction_request(self, auth, path, data, params)
+		end,
+	} :: endpoint<restriction_path, update_query, restriction, restriction>,
+
+	list_logs = web.endpoint {
+		base = `{UNIVERSE}:listLogs`,
+		method = 'GET',
+		auth = READ,
+		ratelimit = RATELIMIT,
+		path = { universe_id = 0 },
+		query = LOGS,
+	} :: endpoint<{ universe_id: number }, logs_query, nil, restriction_logs_page>,
 }

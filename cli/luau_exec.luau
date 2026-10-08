@@ -5,6 +5,7 @@ local task = require '@lune/task'
 local cli = require '@utils/cli'
 local cloud = require '@lib'
 local env = require '@utils/env'
+local fetch = require('@utils/fetch').fetch
 local process = require '@lune/process'
 
 -- cli
@@ -30,11 +31,11 @@ local function core_log(msg: string)
 	if focus then return end
 	stdio.write(stdio.style 'dim' .. msg .. stdio.style 'reset' .. '\n')
 end
-local function poll_for_completion(session, task_identity)
+local function poll_for_completion(auth: cloud.auth, task_path: string)
 	while true do
 		task.wait(poll_rate)
 
-		local res = cloud.luau_task_exec.get(session, task_identity)
+		local res = fetch(cloud.luau_task_exec.get, auth, { path = task_path })
 		if res.code == 404 then
 			error(`{stdio.color 'yellow'}failed to poll task ({res.code}): {res.message}{stdio.color 'reset'}`)
 		elseif not res.ok then
@@ -51,25 +52,36 @@ local function poll_for_completion(session, task_identity)
 		end
 	end
 end
-local function fetch_new_logs(session, task_identity)
-	local log_res = cloud.luau_task_exec.list_logs(session, task_identity, { view = 'FLAT', max_page_size = 10_000 })
+local function fetch_new_logs(auth: cloud.auth, task_path: string)
+	local log_res = fetch(
+		cloud.luau_task_exec.list_logs,
+		auth,
+		{ path = task_path },
+		nil,
+		{ view = 'FLAT' :: 'FLAT', maxPageSize = 10_000 }
+	)
 	if not log_res.ok then
 		error(`{stdio.color 'red'}failed to fetch log page ({log_res.code}): {log_res.message}{stdio.color 'reset'}`)
 	end
 
 	for _, log in log_res.body.luauExecutionSessionTaskLogs do
-		for _, msg in log.messages do
+		for _, msg in (log :: cloud.luau_task_flat_log).messages do
 			print(msg)
 		end
 	end
 end
 
 -- run
-local session = cloud.auth.new:api_key(api_key)
-local identity = { universe_id = universe_id, place_id = place_id, version = place_version }
+local auth = cloud.auth.new:api_key(api_key)
 
 core_log(`Creating task... `)
-local create_res = cloud.luau_task_exec.create(session, identity, { script = script_content, timeout = timeout })
+local task_input = { script = script_content, timeout = timeout }
+local create_res = fetch(
+	cloud.luau_task_exec.create,
+	auth,
+	{ universe_id = universe_id, place_id = place_id, version = place_version },
+	task_input
+)
 
 if not create_res.ok then
 	print(`{stdio.color 'red'}Failed to create task ({create_res.code}): {create_res.message}{stdio.color 'reset'}`)
@@ -79,9 +91,9 @@ local pending_task = create_res.body
 last_state = pending_task.state
 
 core_log(`-- {last_state} --`)
-local completed_task = poll_for_completion(session, pending_task)
+local completed_task = poll_for_completion(auth, pending_task.path)
 
-fetch_new_logs(session, completed_task)
+fetch_new_logs(auth, completed_task.path)
 if completed_task.state == 'FAILED' then
 	local err = completed_task.error
 

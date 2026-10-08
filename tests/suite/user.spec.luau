@@ -1,16 +1,17 @@
 local cloud = require '@lib'
 local config = require '../config'
+local fetch = require('@utils/fetch').fetch
 
-local id = { user_id = config.user_id }
+local auth = config.auth
 local run = {}
 
 function run.get()
-	local res = cloud.user.get(config.session, id)
+	local res = fetch(cloud.user.get, auth, { user_id = config.user_id })
 	assert(res.ok and res.body.path, 'missing path')
 end
 
 function run.list_inventory()
-	local res = cloud.user.list_inventory(config.session, id, { maxPageSize = 1 })
+	local res = fetch(cloud.user.list_inventory, auth, { user_id = config.user_id }, nil, { maxPageSize = 1 })
 	assert(res.ok, `failed: {res.message}`)
 
 	local list = res.body.inventoryItems

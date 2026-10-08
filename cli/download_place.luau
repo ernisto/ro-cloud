@@ -1,7 +1,9 @@
 local cli = require '@utils/cli'
 local cloud = require '@lib'
 local env = require '@utils/env'
+local fetch = require('@utils/fetch').fetch
 local fs = require '@lune/fs'
+local net = require '@lune/net'
 
 assert(cli.str(1) == 'place', `no command '{cli.str(1)}' found\navailable commands: 'place'`)
 assert(cli.str(2) == 'download', `no sub-command '{cli.str(2)}' found\navailable sub commands: 'download'`)
@@ -18,13 +20,15 @@ if cache and fs.isFile(output) then
 	if age < cache then return nil end
 end
 
-local session = cloud.auth.new:api_key(api_key)
-local res = cloud.place.download(session, { place_id = place_id })
+local res = fetch(cloud.asset.download, cloud.auth.new:api_key(api_key), { asset_id = place_id })
+assert(res.ok, res.message)
+
+local file = net.request(res.body.location)
+assert(file.ok, file.statusMessage)
 
 local dir = output:match '(.*)/.+$'
 if dir then fs.writeDir(dir) end
 
-assert(res.ok, res.message)
-fs.writeFile(output, res.body)
+fs.writeFile(output, file.body)
 
 return nil

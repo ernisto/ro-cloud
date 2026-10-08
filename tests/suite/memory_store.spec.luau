@@ -1,12 +1,18 @@
 local cloud = require '@lib'
 local config = require '../config'
+local fetch = require('@utils/fetch').fetch
 
-local sorted_map = { universe_id = config.universe_id, sorted_map_id = config.sorted_map_id }
-local queue = { universe_id = config.universe_id, queue_id = config.queue_id }
+local auth = config.auth
 local run = {}
 
 function run.list_sorted_map()
-	local res = cloud.memory_store.list_sorted_map(config.session, sorted_map, { maxPageSize = 1 })
+	local res = fetch(
+		cloud.memory_store.list_sorted_map,
+		auth,
+		{ universe_id = config.universe_id, sorted_map_id = config.sorted_map_id },
+		nil,
+		{ maxPageSize = 1 }
+	)
 	assert(res.ok, `failed: {res.message}`)
 
 	local list = res.body.items
@@ -14,7 +20,13 @@ function run.list_sorted_map()
 end
 
 function run.read_queue()
-	local res = cloud.memory_store.read_queue(config.session, queue, { count = 1 })
+	local res = fetch(
+		cloud.memory_store.read_queue,
+		auth,
+		{ universe_id = config.universe_id, queue_id = config.queue_id },
+		nil,
+		{ count = 1 }
+	)
 	if res.code == 404 then
 		print(`         skipped query check: queue '{config.queue_id}' not found`)
 		return

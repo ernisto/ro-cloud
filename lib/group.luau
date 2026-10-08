@@ -1,11 +1,7 @@
-local auth = require './auth'
+local web = require './web'
+type endpoint<P, Q, B, R> = web.endpoint<P, Q, B, R>
 
 -- defs
-export type identity = { group_id: number }
-export type membership_identity = { group_id: number, membership_id: string }
-export type role_identity = { group_id: number, role_id: string }
-export type join_request_identity = { group_id: number, join_request_id: string }
-
 type role_permissions = {
 	viewWallPosts: boolean?,
 	postToWall: boolean?,
@@ -56,83 +52,103 @@ export type shout = { path: string?, createTime: string?, updateTime: string?, c
 
 export type join_request = { path: string?, createTime: string?, user: string? }
 
-type page_query = { maxPageSize: number?, pageToken: string? }
-
--- functions
-local function get(session: auth.apikey_session | auth.oauth2_session, subject: identity)
-	local url = `https://apis.roblox.com/cloud/v2/groups/{subject.group_id}`
-	return auth.request_json(session, 'GET', url) :: auth.http_result<group>
-end
-
-local function get_shout(session: auth.apikey_session | auth.oauth2_session, subject: identity)
-	local url = `https://apis.roblox.com/cloud/v2/groups/{subject.group_id}/shout`
-	return auth.request_json(session, 'GET', url) :: auth.http_result<shout>
-end
-
 -- TODO: complete from Roblox cloud docs
 export type roles_page = { groupRoles: { role }, nextPageToken: string? }
-local function list_roles(session: auth.apikey_session | auth.oauth2_session, subject: identity, query: page_query?)
-	local url = `https://apis.roblox.com/cloud/v2/groups/{subject.group_id}/roles`
-	return auth.request_json(session, 'GET', url, query) :: auth.http_result<roles_page>
-end
-
-local function get_role(session: auth.apikey_session | auth.oauth2_session, subject: role_identity)
-	local url = `https://apis.roblox.com/cloud/v2/groups/{subject.group_id}/roles/{subject.role_id}`
-	return auth.request_json(session, 'GET', url) :: auth.http_result<role>
-end
-
 -- TODO: complete from Roblox cloud docs
 export type memberships_page = { groupMemberships: { membership }, nextPageToken: string? }
-local function list_memberships(
-	session: auth.apikey_session | auth.oauth2_session,
-	subject: identity,
-	query: page_query?
-)
-	local url = `https://apis.roblox.com/cloud/v2/groups/{subject.group_id}/memberships`
-	return auth.request_json(session, 'GET', url, query) :: auth.http_result<memberships_page>
-end
-
-local function update_membership(
-	session: auth.apikey_session | auth.oauth2_session,
-	subject: membership_identity,
-	data: membership
-)
-	local url = `https://apis.roblox.com/cloud/v2/groups/{subject.group_id}/memberships/{subject.membership_id}`
-	return auth.request_json(session, 'PATCH', url, nil, data) :: auth.http_result<membership>
-end
-
 -- TODO: complete from Roblox cloud docs
 export type join_requests_page = { groupJoinRequests: { join_request }, nextPageToken: string? }
-local function list_join_requests(
-	session: auth.apikey_session | auth.oauth2_session,
-	subject: identity,
-	query: page_query?
-)
-	local url = `https://apis.roblox.com/cloud/v2/groups/{subject.group_id}/join-requests`
-	return auth.request_json(session, 'GET', url, query) :: auth.http_result<join_requests_page>
-end
 
-local function accept_join_request(session: auth.apikey_session | auth.oauth2_session, subject: join_request_identity)
-	local url =
-		`https://apis.roblox.com/cloud/v2/groups/{subject.group_id}/join-requests/{subject.join_request_id}:accept`
-	return auth.request_json(session, 'POST', url) :: auth.http_result<nil>
-end
+local GROUP = 'https://apis.roblox.com/cloud/v2/groups/{group_id}'
 
-local function decline_join_request(session: auth.apikey_session | auth.oauth2_session, subject: join_request_identity)
-	local url =
-		`https://apis.roblox.com/cloud/v2/groups/{subject.group_id}/join-requests/{subject.join_request_id}:decline`
-	return auth.request_json(session, 'POST', url) :: auth.http_result<nil>
-end
+local JOIN_REQUEST = table.freeze { group_id = 0, join_request_id = '' }
+type join_request_path = typeof(JOIN_REQUEST)
+
+local NONE: web.auth_spec = { apikey = { scope = {} } }
+local READ: web.auth_spec = { apikey = { scope = { ['group:read'] = true } } }
+local WRITE: web.auth_spec = { apikey = { scope = { ['group:write'] = true } } }
+
+local GROUP_PATH = table.freeze { group_id = 0 }
+local PAGE = table.freeze { maxPageSize = 0 :: number?, pageToken = '' :: string?, filter = '' :: string? }
+type group_path = typeof(GROUP_PATH)
+export type page_query = typeof(PAGE)
 
 -- module
 return table.freeze {
-	get = get,
-	get_shout = get_shout,
-	list_roles = list_roles,
-	get_role = get_role,
-	list_memberships = list_memberships,
-	update_membership = update_membership,
-	list_join_requests = list_join_requests,
-	accept_join_request = accept_join_request,
-	decline_join_request = decline_join_request,
+	get = web.endpoint {
+		base = GROUP,
+		method = 'GET',
+		auth = NONE,
+		ratelimit = { apikey = 150 },
+		path = GROUP_PATH,
+	} :: endpoint<group_path, nil, nil, group>,
+
+	get_shout = web.endpoint {
+		base = `{GROUP}/shout`,
+		method = 'GET',
+		auth = READ,
+		path = GROUP_PATH,
+	} :: endpoint<group_path, nil, nil, shout>,
+
+	list_roles = web.endpoint {
+		base = `{GROUP}/roles`,
+		method = 'GET',
+		auth = READ,
+		ratelimit = { apikey = 300 },
+		path = GROUP_PATH,
+		query = PAGE,
+	} :: endpoint<group_path, page_query, nil, roles_page>,
+
+	get_role = web.endpoint {
+		base = `{GROUP}/roles/\{role_id}`,
+		method = 'GET',
+		auth = READ,
+		ratelimit = { apikey = 300 },
+		path = { group_id = 0, role_id = '' },
+	} :: endpoint<{ group_id: number, role_id: string }, nil, nil, role>,
+
+	list_memberships = web.endpoint {
+		base = `{GROUP}/memberships`,
+		method = 'GET',
+		auth = NONE,
+		ratelimit = { apikey = 300 },
+		path = GROUP_PATH,
+		query = PAGE,
+	} :: endpoint<group_path, page_query, nil, memberships_page>,
+
+	update_membership = web.endpoint {
+		base = `{GROUP}/memberships/\{membership_id}`,
+		method = 'PATCH',
+		auth = WRITE,
+		ratelimit = { apikey = 300 },
+		path = { group_id = 0, membership_id = '' },
+		content_type = 'application/json',
+	} :: endpoint<{ group_id: number, membership_id: string }, nil, membership, membership>,
+
+	list_join_requests = web.endpoint {
+		base = `{GROUP}/join-requests`,
+		method = 'GET',
+		auth = READ,
+		ratelimit = { apikey = 300 },
+		path = GROUP_PATH,
+		query = PAGE,
+	} :: endpoint<group_path, page_query, nil, join_requests_page>,
+
+	accept_join_request = web.endpoint {
+		base = `{GROUP}/join-requests/\{join_request_id}:accept`,
+		method = 'POST',
+		auth = WRITE,
+		ratelimit = { apikey = 100 },
+		path = JOIN_REQUEST,
+		content_type = 'application/json',
+	} :: endpoint<join_request_path, nil, nil, nil>,
+
+	decline_join_request = web.endpoint {
+		base = `{GROUP}/join-requests/\{join_request_id}:decline`,
+		method = 'POST',
+		auth = WRITE,
+		ratelimit = { apikey = 100 },
+		path = JOIN_REQUEST,
+		content_type = 'application/json',
+	} :: endpoint<join_request_path, nil, nil, nil>,
 }

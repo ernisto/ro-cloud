@@ -1,11 +1,7 @@
-local auth = require './auth'
+local web = require './web'
+type endpoint<P, Q, B, R> = web.endpoint<P, Q, B, R>
 
 -- defs
-export type queue_identity = { universe_id: number, queue_id: string }
-export type sorted_map_identity = { universe_id: number, sorted_map_id: string }
-export type sorted_map_item_identity = { universe_id: number, sorted_map_id: string, item_id: string }
-
-type ordered_page_query = { maxPageSize: number?, pageToken: string?, orderBy: string?, filter: string? }
 export type queue_item = {
 	path: string?,
 	data: any,
@@ -25,86 +21,121 @@ export type sorted_map_item = {
 	numericSortKey: number?,
 }
 
--- functions
-local function enqueue(session: auth.apikey_session, subject: queue_identity, item: queue_item)
-	local url =
-		`https://apis.roblox.com/cloud/v2/universes/{subject.universe_id}/memory-store/queues/{subject.queue_id}/items`
-	return auth.request_json(session, 'POST', url, item) :: auth.http_result<queue_item>
-end
-
-type params = { count: number?, allOrNothing: boolean?, invisibilityWindow: string? }
-
 -- TODO: complete from Roblox cloud docs
-export type queue_read = { items: { queue_item }? }
-local function read_queue(session: auth.apikey_session, subject: queue_identity, params: params)
-	local url =
-		`https://apis.roblox.com/cloud/v2/universes/{subject.universe_id}/memory-store/queues/{subject.queue_id}/items:read`
-	return auth.request_json(session, 'GET', url, params) :: auth.http_result<queue_read>
-end
-
-local function discard_queue(session: auth.apikey_session, subject: queue_identity, read_id: string)
-	local url =
-		`https://apis.roblox.com/cloud/v2/universes/{subject.universe_id}/memory-store/queues/{subject.queue_id}/items:discard`
-	return auth.request_json(session, 'POST', url, { readId = read_id }) :: auth.http_result<nil>
-end
-
+export type queue_read = { items: { queue_item }?, readId: string? }
 -- TODO: complete from Roblox cloud docs
 export type sorted_map_page = { items: { sorted_map_item }, nextPageToken: string? }
-local function list_sorted_map(session: auth.apikey_session, subject: sorted_map_identity, query: ordered_page_query?)
-	local url =
-		`https://apis.roblox.com/cloud/v2/universes/{subject.universe_id}/memory-store/sorted-maps/{subject.sorted_map_id}/items`
-	return auth.request_json(session, 'GET', url, query) :: auth.http_result<sorted_map_page>
+
+local QUEUE = 'https://apis.roblox.com/cloud/v2/universes/{universe_id}/memory-store/queues/{queue_id}/items'
+local MAP = 'https://apis.roblox.com/cloud/v2/universes/{universe_id}/memory-store/sorted-maps/{sorted_map_id}/items'
+
+local RATELIMIT: web.ratelimit = { apikey = 1_000_000 }
+local function scoped(scope: string): web.auth_spec
+	return { apikey = { scope = { [scope] = true } } }
 end
 
-local function get_sorted_map_item(session: auth.apikey_session, subject: sorted_map_item_identity)
-	local url =
-		`https://apis.roblox.com/cloud/v2/universes/{subject.universe_id}/memory-store/sorted-maps/{subject.sorted_map_id}/items/{subject.item_id}`
-	return auth.request_json(session, 'GET', url) :: auth.http_result<sorted_map_item>
-end
+local QUEUE_ADD = scoped 'memory-store.queue:add'
+local QUEUE_DEQUEUE = scoped 'memory-store.queue:dequeue'
+local QUEUE_DISCARD = scoped 'memory-store.queue:discard'
+local MAP_READ = scoped 'memory-store.sorted-map:read'
+local MAP_WRITE = scoped 'memory-store.sorted-map:write'
+local FLUSH = scoped 'memory-store:flush'
 
-local function set_sorted_map_item(
-	session: auth.apikey_session,
-	subject: sorted_map_identity,
-	id: string?,
-	item: sorted_map_item
-)
-	local url =
-		`https://apis.roblox.com/cloud/v2/universes/{subject.universe_id}/memory-store/sorted-maps/{subject.sorted_map_id}/items`
-	return auth.request_json(session, 'POST', url, { id = id }, item) :: auth.http_result<sorted_map_item>
-end
-
-local function update_sorted_map_item(
-	session: auth.apikey_session,
-	subject: sorted_map_item_identity,
-	item: sorted_map_item,
-	allow_missing: boolean?
-)
-	local url =
-		`https://apis.roblox.com/cloud/v2/universes/{subject.universe_id}/memory-store/sorted-maps/{subject.sorted_map_id}/items/{subject.item_id}`
-	local query = { allowMissing = allow_missing }
-	return auth.request_json(session, 'PATCH', url, query, item) :: auth.http_result<sorted_map_item>
-end
-
-local function delete_sorted_map_item(session: auth.apikey_session, subject: sorted_map_item_identity)
-	local url =
-		`https://apis.roblox.com/cloud/v2/universes/{subject.universe_id}/memory-store/sorted-maps/{subject.sorted_map_id}/items/{subject.item_id}`
-	return auth.request_json(session, 'DELETE', url) :: auth.http_result<nil>
-end
-
-local function flush(session: auth.apikey_session, subject: { universe_id: number })
-	local url = `https://apis.roblox.com/cloud/v2/universes/{subject.universe_id}/memory-store:flush`
-	return auth.request_json(session, 'POST', url) :: auth.http_result<auth.json_object>
-end
+local QUEUE_PATH = table.freeze { universe_id = 0, queue_id = '' }
+local MAP_PATH = table.freeze { universe_id = 0, sorted_map_id = '' }
+local ITEM_PATH = table.freeze { universe_id = 0, sorted_map_id = '', item_id = '' }
+local READ = table.freeze { count = 0 :: number?, allOrNothing = false :: boolean?, invisibilityWindow = '' :: string? }
+local ORDERED_PAGE = table.freeze {
+	maxPageSize = 0 :: number?,
+	pageToken = '' :: string?,
+	orderBy = '' :: string?,
+	filter = '' :: string?,
+}
+type queue_path = typeof(QUEUE_PATH)
+type map_path = typeof(MAP_PATH)
+type item_path = typeof(ITEM_PATH)
+export type read_query = typeof(READ)
+export type ordered_page_query = typeof(ORDERED_PAGE)
 
 -- module
 return table.freeze {
-	enqueue = enqueue,
-	read_queue = read_queue,
-	discard_queue = discard_queue,
-	list_sorted_map = list_sorted_map,
-	get_sorted_map_item = get_sorted_map_item,
-	set_sorted_map_item = set_sorted_map_item,
-	update_sorted_map_item = update_sorted_map_item,
-	delete_sorted_map_item = delete_sorted_map_item,
-	flush = flush,
+	enqueue = web.endpoint {
+		base = QUEUE,
+		method = 'POST',
+		auth = QUEUE_ADD,
+		ratelimit = RATELIMIT,
+		path = QUEUE_PATH,
+		content_type = 'application/json',
+	} :: endpoint<queue_path, nil, queue_item, queue_item>,
+
+	read_queue = web.endpoint {
+		base = `{QUEUE}:read`,
+		method = 'GET',
+		auth = QUEUE_DEQUEUE,
+		ratelimit = RATELIMIT,
+		path = QUEUE_PATH,
+		query = READ,
+	} :: endpoint<queue_path, read_query, nil, queue_read>,
+
+	discard_queue = web.endpoint {
+		base = `{QUEUE}:discard`,
+		method = 'POST',
+		auth = QUEUE_DISCARD,
+		ratelimit = RATELIMIT,
+		path = QUEUE_PATH,
+		content_type = 'application/json',
+	} :: endpoint<queue_path, nil, { readId: string }, nil>,
+
+	list_sorted_map = web.endpoint {
+		base = MAP,
+		method = 'GET',
+		auth = MAP_READ,
+		ratelimit = RATELIMIT,
+		path = MAP_PATH,
+		query = ORDERED_PAGE,
+	} :: endpoint<map_path, ordered_page_query, nil, sorted_map_page>,
+
+	get_sorted_map_item = web.endpoint {
+		base = `{MAP}/\{item_id}`,
+		method = 'GET',
+		auth = MAP_READ,
+		ratelimit = RATELIMIT,
+		path = ITEM_PATH,
+	} :: endpoint<item_path, nil, nil, sorted_map_item>,
+
+	set_sorted_map_item = web.endpoint {
+		base = MAP,
+		method = 'POST',
+		auth = MAP_WRITE,
+		ratelimit = RATELIMIT,
+		path = MAP_PATH,
+		query = { id = '' :: string? },
+		content_type = 'application/json',
+	} :: endpoint<map_path, { id: string? }, sorted_map_item, sorted_map_item>,
+
+	update_sorted_map_item = web.endpoint {
+		base = `{MAP}/\{item_id}`,
+		method = 'PATCH',
+		auth = MAP_WRITE,
+		ratelimit = RATELIMIT,
+		path = ITEM_PATH,
+		query = { allowMissing = false :: boolean? },
+		content_type = 'application/json',
+	} :: endpoint<item_path, { allowMissing: boolean? }, sorted_map_item, sorted_map_item>,
+
+	delete_sorted_map_item = web.endpoint {
+		base = `{MAP}/\{item_id}`,
+		method = 'DELETE',
+		auth = MAP_WRITE,
+		ratelimit = RATELIMIT,
+		path = ITEM_PATH,
+	} :: endpoint<item_path, nil, nil, nil>,
+
+	flush = web.endpoint {
+		base = 'https://apis.roblox.com/cloud/v2/universes/{universe_id}/memory-store:flush',
+		method = 'POST',
+		auth = FLUSH,
+		ratelimit = RATELIMIT,
+		path = { universe_id = 0 },
+	} :: endpoint<{ universe_id: number }, nil, nil, { [string]: any }>,
 }

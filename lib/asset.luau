@@ -1,10 +1,9 @@
-local auth = require './auth'
-local serde = require '@lune/serde'
+local json = require './web/json'
+
+local web = require './web'
+type endpoint<P, Q, B, R> = web.endpoint<P, Q, B, R>
 
 -- defs
-export type identity = { asset_id: number }
-export type version_identity = identity & { version: number }
-
 type creation_context = { creator: string?, expectedPrice: number? }
 type moderation_result = { moderationState: string? }
 type preview = { asset: string?, altText: string? }
@@ -49,100 +48,134 @@ export type asset_version = {
 }
 
 type operation_error = { code: number, message: string, details: { any }? }
-type page_query = { maxPageSize: number?, pageToken: string? }
 
 export type asset_operation =
 	| { path: string, done: false, error: operation_error }
 	| { path: string, done: true, response: asset_data }
 
-type err_response = { errors: { { code: number, message: string } } }
-
--- functions
-local function download(
-	session: auth.apikey_session | auth.oauth2_session,
-	subject: identity | version_identity
-): auth.http_result<buffer, err_response>
-	local url = `https://apis.roblox.com/asset-delivery-api/v1/assetId/{subject.asset_id}`
-	local location_response = auth.request_json(session, 'GET', url, { version = (subject :: any).version })
-
-	if not location_response.ok then return location_response end
-	local response = auth.request(session, 'GET', location_response.body.location)
-
-	return {
-		ok = response.ok,
-		code = response.statusCode,
-		message = response.statusMessage,
-		headers = response.headers,
-		body = if response.ok then buffer.fromstring(response.body) else serde.decode('json', response.body),
-	} :: any
-end
-
-local function create(session: auth.apikey_session | auth.oauth2_session, asset: asset_data_patch, content: buffer)
-	local data = auth.form { fileContent = content, request = serde.encode('json', asset) }
-	local url = 'https://apis.roblox.com/assets/v1/assets'
-	return auth.request_json(session, 'POST', url, nil, data) :: auth.http_result<asset_operation>
-end
-
-local function update(
-	session: auth.apikey_session | auth.oauth2_session,
-	subject: identity,
-	asset: asset_data_patch,
-	content: buffer?
-)
-	local url = `https://apis.roblox.com/assets/v1/assets/{subject.asset_id}`
-	local data = auth.form { request = serde.encode('json', asset), fileContent = content }
-	local query = { updateMask = auth.mask_from(asset) }
-	return auth.request_json(session, 'PATCH', url, query, data) :: auth.http_result<asset_operation>
-end
-
-local function get(session: auth.apikey_session | auth.oauth2_session, subject: identity, read_mask: string?)
-	local url = `https://apis.roblox.com/assets/v1/assets/{subject.asset_id}`
-	return auth.request_json(session, 'GET', url, { readMask = read_mask }) :: auth.http_result<asset_data>
-end
-
-local function archive(session: auth.apikey_session | auth.oauth2_session, subject: identity)
-	local url = `https://apis.roblox.com/assets/v1/assets/{subject.asset_id}:archive`
-	return auth.request_json(session, 'POST', url) :: auth.http_result<asset_data>
-end
-
-local function restore(session: auth.apikey_session | auth.oauth2_session, subject: identity)
-	local url = `https://apis.roblox.com/ssets/v1/assets/{subject.asset_id}:restore`
-	return auth.request_json(session, 'POST', url) :: auth.http_result<asset_data>
-end
-
-local function rollback(session: auth.apikey_session | auth.oauth2_session, subject: identity, version: number)
-	local url = `https://apis.roblox.com/assets/v1/assets/{subject.asset_id}/versions:rollback`
-	local data = auth.form { assetVersion = `assets/{subject.asset_id}/versions/{version}` }
-	return auth.request_json(session, 'POST', url, nil, data) :: auth.http_result<asset_version>
-end
-
-local function get_version(session: auth.apikey_session | auth.oauth2_session, subject: identity, version: string)
-	local url = `https://apis.roblox.com/assets/v1/assets/{subject.asset_id}/versions/{version}`
-	return auth.request_json(session, 'GET', url) :: auth.http_result<asset_version>
-end
-
 -- TODO: complete from Roblox cloud docs
 export type asset_versions_page = { assetVersions: { asset_version }, nextPageToken: string? }
-local function list_versions(session: auth.apikey_session | auth.oauth2_session, subject: identity, query: page_query?)
-	local url = `https://apis.roblox.com/assets/v1/assets/{subject.asset_id}/versions`
-	return auth.request_json(session, 'GET', url, query) :: auth.http_result<asset_versions_page>
-end
 
-local function get_operation(session: auth.apikey_session | auth.oauth2_session, operation_id: string)
-	local url = `https://apis.roblox.com/assets/v1/operations/{operation_id}`
-	return auth.request_json(session, 'GET', url) :: auth.http_result<asset_operation>
+export type download_location = { location: string }
+
+-- `content` is the asset file, optional on update
+export type asset_upload = { content: buffer?, asset: asset_data_patch }
+
+local READ: web.auth_spec = { apikey = { scope = { ['asset:read'] = true } } }
+local WRITE: web.auth_spec = { apikey = { scope = { ['asset:read'] = true, ['asset:write'] = true } } }
+
+local LEGACY_MANAGE: web.auth_spec = { apikey = { scope = { ['legacy-asset:manage'] = true } } }
+
+local ASSETS = 'https://apis.roblox.com/assets/v1/assets'
+
+local ASSET = table.freeze { asset_id = 0 }
+local VERSION = table.freeze { asset_id = 0, version = 0 }
+local OPERATION = table.freeze { operation_id = '' }
+local PAGE = table.freeze { maxPageSize = 0 :: number?, pageToken = '' :: string? }
+type asset_path = typeof(ASSET)
+type version_path = typeof(VERSION)
+type operation_path = typeof(OPERATION)
+export type page_query = typeof(PAGE)
+
+local function upload_form(upload: asset_upload)
+	return { fileContent = upload.content, request = buffer.tostring(json.encode(upload.asset)) }
 end
 
 -- module
 return table.freeze {
-	create = create,
-	update = update,
-	get = get,
-	archive = archive,
-	restore = restore,
-	download = download,
-	get_version = get_version,
-	list_versions = list_versions,
-	rollback = rollback,
-	get_operation = get_operation,
+	download = web.endpoint {
+		base = 'https://apis.roblox.com/asset-delivery-api/v1/assetId/{asset_id}',
+		method = 'GET',
+		auth = LEGACY_MANAGE,
+		path = ASSET,
+		query = { version = 0 :: number? },
+	} :: endpoint<asset_path, { version: number? }, nil, download_location>,
+
+	create = web.endpoint {
+		base = ASSETS,
+		method = 'POST',
+		auth = WRITE,
+		ratelimit = { apikey = 120 },
+		path = nil,
+		content_type = 'multipart/form-data',
+		request = function(self, auth, _, upload)
+			return web.build(self, auth, { body = upload_form(upload) })
+		end,
+	} :: endpoint<nil, nil, asset_upload, asset_operation>,
+
+	update = web.endpoint {
+		base = `{ASSETS}/\{asset_id}`,
+		method = 'PATCH',
+		auth = WRITE,
+		ratelimit = { apikey = 120 },
+		path = ASSET,
+		content_type = 'multipart/form-data',
+		request = function(self, auth, path, upload)
+			local query = { updateMask = web.mask_from(upload.asset) }
+			return web.build(self, auth, { path = path, query = query, body = upload_form(upload) })
+		end,
+	} :: endpoint<asset_path, nil, asset_upload, asset_operation>,
+
+	get = web.endpoint {
+		base = `{ASSETS}/\{asset_id}`,
+		method = 'GET',
+		auth = READ,
+		ratelimit = { apikey = 120 },
+		path = ASSET,
+		query = { readMask = '' :: string? },
+	} :: endpoint<asset_path, { readMask: string? }, nil, asset_data>,
+
+	archive = web.endpoint {
+		base = `{ASSETS}/\{asset_id}:archive`,
+		method = 'POST',
+		auth = WRITE,
+		ratelimit = { apikey = 100 },
+		path = ASSET,
+	} :: endpoint<asset_path, nil, nil, asset_data>,
+
+	restore = web.endpoint {
+		base = `{ASSETS}/\{asset_id}:restore`,
+		method = 'POST',
+		auth = WRITE,
+		ratelimit = { apikey = 100 },
+		path = ASSET,
+	} :: endpoint<asset_path, nil, nil, asset_data>,
+
+	rollback = web.endpoint {
+		base = `{ASSETS}/\{asset_id}/versions:rollback`,
+		method = 'POST',
+		auth = WRITE,
+		ratelimit = { apikey = 100 },
+		path = VERSION,
+		content_type = 'multipart/form-data',
+		request = function(self, auth, path)
+			local body = { assetVersion = `assets/{path.asset_id}/versions/{path.version}` }
+			return web.build(self, auth, { path = path, body = body })
+		end,
+	} :: endpoint<version_path, nil, nil, asset_version>,
+
+	get_version = web.endpoint {
+		base = `{ASSETS}/\{asset_id}/versions/\{version}`,
+		method = 'GET',
+		auth = READ,
+		ratelimit = { apikey = 100 },
+		path = VERSION,
+	} :: endpoint<version_path, nil, nil, asset_version>,
+
+	list_versions = web.endpoint {
+		base = `{ASSETS}/\{asset_id}/versions`,
+		method = 'GET',
+		auth = READ,
+		ratelimit = { apikey = 100 },
+		path = ASSET,
+		query = PAGE,
+	} :: endpoint<asset_path, page_query, nil, asset_versions_page>,
+
+	get_operation = web.endpoint {
+		base = 'https://apis.roblox.com/assets/v1/operations/{operation_id}',
+		method = 'GET',
+		auth = READ,
+		ratelimit = { apikey = 300 },
+		path = OPERATION,
+	} :: endpoint<operation_path, nil, nil, asset_operation>,
 }

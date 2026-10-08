@@ -1,5 +1,5 @@
-local auth = require '@lib/auth'
-local universe = require '@lib/universe'
+local web = require './web'
+type endpoint<P, Q, B, R> = web.endpoint<P, Q, B, R>
 
 -- defs
 export type secret = {
@@ -15,52 +15,63 @@ export type secret_create = { id: string, secret: string, key_id: string, domain
 export type secret_patch = { secret: string? }
 export type public_key = { key_id: string?, public_key: string? }
 
-type secrets_page = { nextPageCursor: 'n' | string, previousPageCursor: 'p' | string, secrets: { secret } }
+export type secrets_page = { nextPageCursor: 'n' | string, previousPageCursor: 'p' | string, secrets: { secret } }
 
--- functions
-local function get_public_key(session: auth.apikey_session | auth.oauth2_session, subject: universe.identity)
-	local url = `https://apis.roblox.com/cloud/v2/universes/{subject.universe_id}/secrets/public-key`
-	return auth.request_json(session, 'GET', url) :: auth.http_result<public_key>
-end
+local UNIVERSE = table.freeze { universe_id = 0 }
+local SECRET = table.freeze { universe_id = 0, secret_id = '' }
+local PAGE = table.freeze { limit = 0 :: number?, cursor = '' :: string? }
+type universe_path = typeof(UNIVERSE)
+type secret_path = typeof(SECRET)
+export type page_query = typeof(PAGE)
 
-local function list_secrets(session: auth.apikey_session | auth.oauth2_session, subject: universe.identity)
-	local url = `https://apis.roblox.com/cloud/v2/universes/{subject.universe_id}/secrets`
-	return auth.request_json(session, 'GET', url) :: auth.http_result<secrets_page>
-end
+local READ: web.auth_spec = { apikey = { scope = { ['universe.secret:read'] = true } } }
+local WRITE: web.auth_spec = { apikey = { scope = { ['universe.secret:write'] = true } } }
+local RATELIMIT: web.ratelimit = { apikey = 120 }
 
-local function create_secret(
-	session: auth.apikey_session | auth.oauth2_session,
-	subject: universe.identity,
-	data: secret_create
-)
-	local url = `https://apis.roblox.com/cloud/v2/universes/{subject.universe_id}/secrets`
-	return auth.request_json(session, 'POST', url, nil, data) :: auth.http_result<secret>
-end
-
-local function delete_secret(
-	session: auth.apikey_session | auth.oauth2_session,
-	subject: universe.identity,
-	secret_id: string
-)
-	local url = `https://apis.roblox.com/cloud/v2/universes/{subject.universe_id}/secrets/{secret_id}`
-	return auth.request_json(session, 'DELETE', url) :: auth.http_result<nil>
-end
-
-local function update_secret(
-	session: auth.apikey_session | auth.oauth2_session,
-	subject: universe.identity,
-	secret_id: string,
-	data: secret_patch
-)
-	local url = `https://apis.roblox.com/cloud/v2/universes/{subject.universe_id}/secrets/{secret_id}`
-	return auth.request_json(session, 'PATCH', url, nil, data) :: auth.http_result<secret>
-end
+local SECRETS = 'https://apis.roblox.com/cloud/v2/universes/{universe_id}/secrets'
 
 -- module
 return table.freeze {
-	get_public_key = get_public_key,
-	create = create_secret,
-	delete = delete_secret,
-	update = update_secret,
-	list = list_secrets,
+	get_public_key = web.endpoint {
+		base = `{SECRETS}/public-key`,
+		method = 'GET',
+		auth = READ,
+		ratelimit = RATELIMIT,
+		path = UNIVERSE,
+	} :: endpoint<universe_path, nil, nil, public_key>,
+
+	list = web.endpoint {
+		base = SECRETS,
+		method = 'GET',
+		auth = READ,
+		ratelimit = RATELIMIT,
+		path = UNIVERSE,
+		query = PAGE,
+	} :: endpoint<universe_path, page_query, nil, secrets_page>,
+
+	create = web.endpoint {
+		base = SECRETS,
+		method = 'POST',
+		auth = WRITE,
+		ratelimit = RATELIMIT,
+		path = UNIVERSE,
+		content_type = 'application/json',
+	} :: endpoint<universe_path, nil, secret_create, secret>,
+
+	delete = web.endpoint {
+		base = `{SECRETS}/\{secret_id}`,
+		method = 'DELETE',
+		auth = WRITE,
+		ratelimit = RATELIMIT,
+		path = SECRET,
+	} :: endpoint<secret_path, nil, nil, nil>,
+
+	update = web.endpoint {
+		base = `{SECRETS}/\{secret_id}`,
+		method = 'PATCH',
+		auth = WRITE,
+		ratelimit = RATELIMIT,
+		path = SECRET,
+		content_type = 'application/json',
+	} :: endpoint<secret_path, nil, secret_patch, secret>,
 }

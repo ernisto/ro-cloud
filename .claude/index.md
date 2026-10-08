@@ -1,87 +1,68 @@
 # Project Index
 
-## lib/auth/
+`lib/` is runtime agnostic: every endpoint is a `web.endpoint { ... }` cast to `endpoint<Path, Query, Body, Response, ErrResponse = error>` inside its module's returned table. `path` / `query` fields are sample values (typing the `request` args); `def:request(auth, path?, body?, query?)` returns `{ url, method, headers, body: buffer? }`. Sending happens outside lib (`utils/fetch.luau` for Lune). No `@lune/*` in `lib/`.
+
+## lib/ (core)
 
 | File | Purpose |
 |------|---------|
-| `lib/auth/init.luau` | Single HTTP entry point. Class-based session: `cloud.auth.new:api_key(key)` / `:cookie(value)` / `:local_cookie()` (via `roblox.getAuthCookie()`) / `:oauth(session)` (stores it as `{ oauth = session }`) — each method returns an immutable clone of self with the field set. One `request` builds headers (`x-api-key` / `Cookie` + CSRF retry / `Authorization`) for all three auth methods; `request_json` wraps it. Helpers: `mask_from`, `form`, `api_key`, `cookie`. Types: `session`, `apikey_session` (`{ api_key_state: { key: string, introspection: api_key.introspection? } }`), `cookie_session` (`{ cookie_state: cookie.state }`), `oauth2_session`, `http_result`, `json`, `query_params`. |
-| `lib/auth/oauth/init.luau` | OAuth2 PKCE flow: `create_authorization_url`, `exchange_code_for_token`, `refresh_token`, `is_session_expired`. |
-| `lib/auth/oauth/types.luau` | Types only: `session`, `oauth_error`. No functions. |
-| `lib/auth/api_key.luau` | API key introspection (`POST api-keys/v1/introspect`, uses `net`/`serde` directly to avoid a require cycle). `introspect(session)` → `(introspection?, err?)`, cached in `session.api_key_state.introspection`; `await_introspect(session)` (throws); `await_refresh_introspection(session)` (bypasses + updates cache, throws); `usable(info)`; `has_scope(info, scope, target?)` where `scope` is `name:operation` and `target` an optional resource id; `await_has_scope(session, scope, target?)`. Types: `scope`, `introspection`, `session`. |
-| `lib/auth/form.luau` | Multipart form builder (vendored). Returns a builder with `.text()`, `.file()`, `.build()`. |
-| `lib/auth/cookie.luau` | Cookie user info (`GET users.roblox.com/v1/users/authenticated`, uses `net`/`serde` directly to avoid a require cycle, with its own CSRF retry). `get_info(session)` → `(user?, err?)`, cached in `session.cookie_state.user_info`; `await_info(session)` (throws). Types: `user`, `state`, `session`. |
+| `lib/web/init.luau` | Module `web`. Types: `endpoint<P, Q, B, R, E = error>`, `definition<P, Q>`, `auth` (session: `{ api_key_state: { key }?, cookie_state: { cookie, csrf_token? }? }`), `auth_spec`, `ratelimit` (per minute), `request`, `error`, `method`. Functions: `endpoint(def)` — fills the default `request` (`build(self, auth, { path, body, query })`), freezes, returns `any`; `build(def, auth, { path?, query?, body?, content_type?, base? })` — fills `{name}` url templates from `path`, encodes + sorts `query`, picks the first credential the def accepts (api key → `x-api-key`, then cookie → `Cookie` + `X-CSRF-TOKEN`), sends `{}` for bodyless json endpoints, form-encodes table bodies on multipart endpoints, json-encodes other table bodies; `with_update_mask` (PATCH `request` adding `updateMask`); `encode` (url percent-encoding); `mask_from` (sorted `updateMask`). |
+| `lib/web/json.luau` | `encode(value) -> buffer` — minimal json encoder (no decoder; runtime decodes responses). |
+| `lib/web/form.luau` | Multipart form builder (vendored). `builder()`, `by_table(fields) -> (body: buffer, content_type)`; buffers become `icon.png` file parts. |
+| `lib/auth/init.luau` | `new` session builder: `new:api_key(key)`, `new:cookie(cookie)` (each returns a cloned session). Also `api_key`, `cookie` submodules. Types `session` (= `web.auth`), `api_key_introspection`. |
+| `lib/auth/api_key.luau` | `introspect` api (`POST api-keys/v1/introspect`); pure `usable(info)`, `has_scope(info, 'name:operation', target?)`. Types: `scope`, `introspection`. |
+| `lib/auth/cookie.luau` | `get_info` api (= `user.get_authenticated`). |
+| `lib/init.luau` | Re-exports every module (`web`, `auth`, `json`, `form`, resources; `product` = developer_product, `pass` = game_pass) and common types (`api`, `auth`, `request`, `error`, …). |
 
 ## lib/ (resources)
 
-| File | Identity type | Exported functions |
-|------|---------------|--------------------|
-| `lib/universe.luau` | `{ universe_id }` | `create` (cookie-only, `universes/v1/universes/create`), `get`, `update`, `publish_message`, `shutdown`, `list_secrets`, `create_secret`, `delete_secret`, `update_secret`, `get_public_key` |
-| `lib/universe_media.luau` | `{ universe_id }` | `upload_icon`, `remove_icon` (cookie-only), `upload_thumbnail`, `list_thumbnails`, `set_thumbnail_order`, `delete_thumbnail` — legacy web APIs (`publish`/`games`/`develop`/`www.roblox.com`) |
-| `lib/place.luau` | `{ universe_id, place_id, version? }` | `upload`, `download`, `get_info`, `update_info`, `get_instance`, `update_instance`, `list_instance_children` |
-| `lib/asset.luau` | `{ asset_id }` | `create`, `update`, `get`, `archive`, `restore`, `get_version`, `list_versions`, `rollback`, `get_operation`, `wait_for_operation` |
-| `lib/data_store.luau` | `store_identity { universe_id, data_store_id, scope_id? }` / `entry_identity` | `list_stores`, `delete_store`, `undelete_store`, `snapshot`, `list_entries`, `create_entry`, `get_entry`, `update_entry`, `delete_entry`, `increment_entry`, `list_entry_revisions`, + ordered-datastore variants |
-| `lib/memory_store.luau` | `queue_identity` / `sorted_map_identity` | `enqueue`, `read_queue`, `discard_queue`, `list_sorted_map`, `get_sorted_map_item`, `set_sorted_map_item`, `update_sorted_map_item`, `delete_sorted_map_item`, `flush` |
-| `lib/user.luau` | `{ user_id }` | `get`, `list_inventory`, `send_notification`, `get_subscription` |
-| `lib/user_restriction.luau` | `restriction_identity` / `place_restriction_identity` | `list`, `get`, `update`, `list_logs` |
-| `lib/group.luau` | `{ group_id }` | `get`, `get_shout`, `list_roles`, `get_role`, `list_memberships`, `update_membership`, `list_join_requests`, `accept_join_request`, `decline_join_request` |
-| `lib/developer_product.luau` | `{ universe_id, product_id }` | (see file) |
-| `lib/develop.luau` | `cookie_session` (no identity) | `get_user_universes`, `get_group_universes`, `get_groups` — uses `develop.roblox.com` API |
-| `lib/game_pass.luau` | `{ pass_id }` | (see file) |
-| `lib/luau_task_exec.luau` | `{ path }` (task path) | `create`, `get`, `wait_for_task`, `create_binary_input`, `get_task_by_path` |
-| `lib/luau_task_exec_log.luau` | — | Log parsing for Luau execution task output |
-| `lib/operation.luau` | — | `get_operation`, `poll_for_result` — exponential backoff poller (10 attempts, 2× delay starting at 1s) |
+Listed as `name(path) body → query`: `path` keys fill the url, `body` is the request body, `query` keys go to the url query string. `?` = optional.
 
-## utils/
+| File | Apis |
+|------|------|
+| `lib/universe.luau` | `create() create_params` (cookie, `groupId` copied to the query), `get(universe_id)`, `update(universe_id) patch` (updateMask), `publish_message(universe_id) message`, `shutdown(universe_id)` |
+| `lib/universe_secret.luau` | `get_public_key(universe_id)`, `list(universe_id) → limit?, cursor?`, `create(universe_id) data`, `delete(universe_id, secret_id)`, `update(universe_id, secret_id) data` |
+| `lib/universe_media.luau` | cookie-only legacy web apis: `upload_icon(universe_id) image`, `remove_icon() { placeId, placeIconId }`, `upload_thumbnail(universe_id) image`, `list_thumbnails(universe_id)`, `set_thumbnail_order(universe_id) { thumbnailIds }`, `delete_thumbnail(universe_id, thumbnail_id)` |
+| `lib/universe_configuration.luau` | cookie: `get(universe_id)` (develop v1), `update(universe_id) patch` (develop v2) |
+| `lib/place.luau` | `create(universe_id) params` (cookie), `upload(universe_id, place_id) file → versionType`, `get_info(universe_id, place_id)`, `update_info(universe_id, place_id) patch`, `get_instance(universe_id, place_id, instance_id)`, `update_instance(…, instance_id) data`, `list_instance_children(…, instance_id) → page` |
+| `lib/place_configuration.luau` | cookie: `get(place_id)`, `update(place_id) patch` |
+| `lib/asset.luau` | `download(asset_id) → version?` → `{ location }` (fetch the location separately), `create() { content, asset }`, `update(asset_id) { content?, asset }`, `get(asset_id) → readMask?`, `archive(asset_id)`, `restore(asset_id)`, `rollback(asset_id, version)`, `get_version(asset_id, version)`, `list_versions(asset_id) → page`, `get_operation(operation_id)` |
+| `lib/data_store.luau` | `snapshot(universe_id)`, `list_stores(universe_id) → page`, `delete_store` / `undelete_store(universe_id, data_store_id)`; entries take `(universe_id, data_store_id, scope_id?, …)`: `list_entries → page`, `create_entry data → id?`, `get_entry` / `delete_entry(…, entry_id)`, `update_entry(…, entry_id) data → allowMissing?`, `increment_entry(…, entry_id) increment`, `list_entry_revisions(…, entry_id) → page`; ordered take `(universe_id, ordered_data_store_id, scope_id, …)`: `list_ordered_entries → page`, `create_ordered_entry { value } → id`, `get_ordered_entry(…, entry_id)`, `update_ordered_entry(…, entry_id) { value } → allowMissing?`, `delete_ordered_entry(…, entry_id)`, `increment_ordered_entry(…, entry_id) { amount }` |
+| `lib/memory_store.luau` | `enqueue(universe_id, queue_id) item`, `read_queue(universe_id, queue_id) → count?, …`, `discard_queue(universe_id, queue_id) { readId }`, `list_sorted_map(universe_id, sorted_map_id) → page`, `get_sorted_map_item` / `delete_sorted_map_item(…, item_id)`, `set_sorted_map_item(…) item → id?`, `update_sorted_map_item(…, item_id) item → allowMissing?`, `flush(universe_id)` |
+| `lib/user.luau` | `get(user_id)`, `get_authenticated()` (cookie, `users.roblox.com`), `list_inventory(user_id) → page`, `send_notification(user_id) notification`, `get_subscription(universe_id, subscription_product_id, subscription_id) → view?` |
+| `lib/user_restriction.luau` | `(universe_id, place_id?, …)`: `list → page`, `get(…, user_restriction_id)`, `update(…, user_restriction_id) data → idempotencyKey.key?` (updateMask); `list_logs(universe_id) → page` |
+| `lib/group.luau` | `get(group_id)`, `get_shout(group_id)`, `list_roles(group_id) → page`, `get_role(group_id, role_id)`, `list_memberships(group_id) → page`, `update_membership(group_id, membership_id) data`, `list_join_requests(group_id) → page`, `accept_join_request` / `decline_join_request(group_id, join_request_id)` |
+| `lib/developer_product.luau` | api key or cookie: `create(universe_id) data`, `update(universe_id, product_id) data`, `get(universe_id, product_id)`, `list(universe_id) → page` — multipart bodies |
+| `lib/game_pass.luau` | api key or cookie: `create(universe_id) data`, `update(universe_id, pass_id) data`, `get(universe_id, pass_id)`, `list(universe_id) → page` — multipart bodies |
+| `lib/luau_task_exec.luau` | `create(universe_id, place_id, version?) task_input`, `get(path)`, `list_logs(path) → page, view?` (`path` = `task.path`) |
+| `lib/develop.luau` | cookie, `develop.roblox.com`: `get_user_universes() → page`, `get_group_universes(group_id) → page`, `get_groups()`, `list_universe_places(universe_id) → page` |
+
+## utils/ (Lune only)
 
 | File | Purpose |
 |------|---------|
+| `utils/fetch.luau` | `fetch(def, auth, path?, body?, query?)` → `http_result<R, E>` (`{ ok, code, message, body }`): builds the request, sends via `@lune/net`, retries once with the CSRF token on cookie 403 (caching it in `auth.cookie_state.csrf_token`), json-decodes the body, surfaces `errors[1]`. `send(request)`. |
 | `utils/cli.luau` | CLI arg parser. Returns `str(key)`, `num(key|pos)`, `uint(key|pos)`, `bool(flag)`, `forwarded`. Supports `--key value`, `--key=value`, `-f`, `--` forwarding. |
 | `utils/bytes.luau` | Byte helpers. |
-| `utils/env.luau` | Environment variable helpers. |
+| `utils/env.luau` | Env helpers; reads `.env` (TOML) then process env. |
 
 ## cli/
 
 | File | Purpose |
 |------|---------|
-| `cli/download_place.luau` | Downloads a place file. Args: `<place_id>` `--output <path>` `--api-key <key>` `--cache <seconds>`. |
-| `cli/luau_exec.luau` | Runs a Luau script via the execution session task API and mirrors output to terminal. Args: `<universe_id> <place_id> <script_path>` `--api-key <key>` `--poll-rate <seconds>` `--timeout <s>` `--version <n>`. Polls until terminal state, then prints structured logs with ANSI colors (yellow=WARNING, red=ERROR, cyan=INFO). |
-
-## docs/
-
-| File | Purpose |
-|------|---------|
-| `docs/examples/oauth_flow.luau` | Full OAuth2 PKCE flow: authorize in browser → exchange code → persist session.json → auto-refresh on expiry. |
+| `cli/init.luau` | Dispatches `place download` / `luau exec`. |
+| `cli/download_place.luau` | `place download <place_id> --output <path> --api-key <key> --cache <seconds>`. Uses `asset.download`, then fetches the location. |
+| `cli/luau_exec.luau` | `luau exec <universe_id> <place_id> --script <code> \| --script-path <path>` `--api-key` `--poll-rate` `--timeout` `--version` `--focus`. Polls the task until done, prints FLAT logs. |
 
 ## tests/
 
 | File | Purpose |
 |------|---------|
-| `tests/run.luau` | Entry point. Reads config from CLI args / env vars, runs all suites, prints summary. Exit code 1 on any failure. |
-| `tests/suite/auth.luau` | Tests `api_key.introspect` (incl. caching), `has_scope`. Requires: `api_key`. |
-| `tests/suite/universe.luau` | Tests `get`, `list_secrets`. Requires: `api_key`, `universe_id`. |
-| `tests/suite/place.luau` | Tests `get_info`, `download`. Requires: `place_id`. |
-| `tests/suite/data_store.luau` | Tests `list_stores`, `list_entries`. `list_entries` requires `data_store_id`. |
-| `tests/suite/memory_store.luau` | Tests `list_sorted_map` (needs `sorted_map_id`), `read_queue` (needs `queue_id`). |
-| `tests/suite/user_restriction.luau` | Tests `list`, `list_logs`. Requires: `universe_id`. |
-| `tests/suite/game_pass.luau` | Tests `list`, `get` (needs `pass_id`). |
-| `tests/suite/developer_product.luau` | Tests `list`, `get` (needs `product_id`). |
-| `tests/suite/user.luau` | Tests `get`, `list_inventory`. Requires: `user_id`. |
-| `tests/suite/group.luau` | Tests `get`, `list_roles`, `list_memberships`. Requires: `group_id`. |
-| `tests/suite/asset.luau` | Tests `get`, `list_versions`. Requires: `asset_id`. |
-| `tests/suite/develop.luau` | Tests `get_user_universes`, `get_groups`, `get_group_universes`. Requires: `COOKIE` env var (skips otherwise). |
+| `tests/run.luau` | Entry point. Runs all suites, prints summary. Exit code 1 on any failure. |
+| `tests/config.luau` | `auth` session (`API_KEY`, `COOKIE` or local Studio cookie) and fixed resource ids. |
+| `tests/suite/api.spec.luau` | Offline: url/query/header building, path vs query split, optional path segments, credential selection, empty json / multipart bodies, json encoding. |
+| `tests/suite/*.spec.luau` | Live read-only checks per resource (`auth`, `universe`, `place`, `data_store`, `memory_store`, `user_restriction`, `game_pass`, `developer_product`, `user`, `group`, `asset`, `develop`). |
 
-## API endpoint map
+## Scopes / ratelimits source
 
-| Module | API base path |
-|--------|--------------|
-| `universe` | `cloud/v2/universes/{id}` |
-| `universe_media` | `publish.roblox.com/v1/games/{id}/…` (upload); `games.roblox.com/v1/games/{id}/media`; `develop.roblox.com/v1/universes/{id}/thumbnails/…`; `www.roblox.com/places/icons/remove-icon` |
-| `place` | `cloud/v2/universes/{id}/places/{id}` (info/instances); `universes/v1/…` (upload); `assetdelivery.roblox.com` (download) |
-| `asset` | `assets/v1/assets/{id}` |
-| `data_store` | `cloud/v2/universes/{id}/data-stores/{id}` |
-| `memory_store` | `cloud/v2/universes/{id}/memory-store/…` |
-| `user` | `cloud/v2/users/{id}` |
-| `user_restriction` | `cloud/v2/universes/{id}/user-restrictions/{id}` |
-| `group` | `cloud/v2/groups/{id}` |
-| `luau_task_exec` | `cloud/v2/universes/{id}/places/{id}/luau-execution-session-tasks` |
-| `operation` | `cloud/v2/{operation_path}` |
+Roblox OpenAPI spec: https://github.com/Roblox/creator-docs/blob/main/content/en-us/reference/cloud/openapi.json (`x-roblox-scopes`, `x-roblox-rate-limits.perApiKeyOwner`).

@@ -1,9 +1,7 @@
-local auth = require './auth'
-type json = auth.json_object
+local web = require './web'
+type endpoint<P, Q, B, R> = web.endpoint<P, Q, B, R>
 
 -- defs
-export type identity = { universe_id: number }
-
 type date = string
 type social_link = { title: string?, uri: string? }
 
@@ -38,8 +36,22 @@ type universe_platform_flags = {
 	vrEnabled: boolean?,
 }
 
--- per-function types
-export type universe_patch = universe_social_links & universe_platform_flags & {
+-- per-api types
+-- flat (no intersection): luau can't check table literals against an optional intersection body
+export type universe_patch = {
+	facebookSocialLink: social_link?,
+	twitterSocialLink: social_link?,
+	youtubeSocialLink: social_link?,
+	twitchSocialLink: social_link?,
+	discordSocialLink: social_link?,
+	robloxGroupSocialLink: social_link?,
+	guildedSocialLink: social_link?,
+	voiceChatEnabled: boolean?,
+	desktopEnabled: boolean?,
+	mobileEnabled: boolean?,
+	tabletEnabled: boolean?,
+	consoleEnabled: boolean?,
+	vrEnabled: boolean?,
 	privateServerPriceRobux: number?,
 }
 export type universe_data = universe_social_links & universe_platform_flags & {
@@ -60,35 +72,60 @@ export type message = { topic: string, message: string }
 export type create_params = { templatePlaceId: number, groupId: number? }
 export type create_response = { universeId: number, rootPlaceId: number? }
 
--- functions
-local function create(session: auth.cookie_session, params: create_params)
-	local url = 'https://apis.roblox.com/universes/v1/universes/create'
-	local query = { groupId = params.groupId }
-	return auth.request_json(session, 'POST', url, query, params) :: auth.http_result<create_response>
-end
-local function get(session: auth.apikey_session | auth.oauth2_session, subject: identity)
-	local url = `https://apis.roblox.com/cloud/v2/universes/{subject.universe_id}`
-	return auth.request_json(session, 'GET', url) :: auth.http_result<universe_data>
-end
-local function update(session: auth.apikey_session | auth.oauth2_session, subject: identity, patch: universe_patch)
-	local url = `https://apis.roblox.com/cloud/v2/universes/{subject.universe_id}`
-	local query = { updateMask = auth.mask_from(patch) }
-	return auth.request_json(session, 'PATCH', url, query, patch) :: auth.http_result<universe_data>
-end
-local function publish_message(session: auth.apikey_session | auth.oauth2_session, subject: identity, message: message)
-	local url = `https://apis.roblox.com/cloud/v2/universes/{subject.universe_id}:publishMessage`
-	return auth.request_json(session, 'POST', url, nil, message) :: auth.http_result<nil>
-end
-local function shutdown(session: auth.apikey_session | auth.oauth2_session, subject: identity)
-	local url = `https://apis.roblox.com/cloud/v2/universes/{subject.universe_id}:restartServers`
-	return auth.request_json(session, 'POST', url) :: auth.http_result<nil>
-end
+local UNIVERSE = table.freeze { universe_id = 0 }
+type universe_path = typeof(UNIVERSE)
+
+local COOKIE: web.auth_spec = { cookie = {} }
+local NONE: web.auth_spec = { apikey = { scope = {} } }
+local WRITE: web.auth_spec = { apikey = { scope = { ['universe:write'] = true } } }
+local PUBLISH: web.auth_spec = { apikey = { scope = { ['universe-messaging-service:publish'] = true } } }
 
 -- module
 return table.freeze {
-	create = create,
-	get = get,
-	update = update,
-	publish_message = publish_message,
-	shutdown = shutdown,
+	create = web.endpoint {
+		base = 'https://apis.roblox.com/universes/v1/universes/create',
+		method = 'POST',
+		auth = COOKIE,
+		path = nil,
+		content_type = 'application/json',
+		request = function(self, auth, _, params)
+			return web.build(self, auth, { query = { groupId = params.groupId }, body = params })
+		end,
+	} :: endpoint<nil, nil, create_params, create_response>,
+
+	get = web.endpoint {
+		base = 'https://apis.roblox.com/cloud/v2/universes/{universe_id}',
+		method = 'GET',
+		auth = NONE,
+		ratelimit = { apikey = 100 },
+		path = UNIVERSE,
+	} :: endpoint<universe_path, nil, nil, universe_data>,
+
+	update = web.endpoint {
+		base = 'https://apis.roblox.com/cloud/v2/universes/{universe_id}',
+		method = 'PATCH',
+		auth = WRITE,
+		ratelimit = { apikey = 100 },
+		path = UNIVERSE,
+		content_type = 'application/json',
+		request = web.with_update_mask,
+	} :: endpoint<universe_path, nil, universe_patch, universe_data>,
+
+	publish_message = web.endpoint {
+		base = 'https://apis.roblox.com/cloud/v2/universes/{universe_id}:publishMessage',
+		method = 'POST',
+		auth = PUBLISH,
+		ratelimit = { apikey = 5000 },
+		path = UNIVERSE,
+		content_type = 'application/json',
+	} :: endpoint<universe_path, nil, message, nil>,
+
+	shutdown = web.endpoint {
+		base = 'https://apis.roblox.com/cloud/v2/universes/{universe_id}:restartServers',
+		method = 'POST',
+		auth = WRITE,
+		ratelimit = { apikey = 30 },
+		path = UNIVERSE,
+		content_type = 'application/json',
+	} :: endpoint<universe_path, nil, nil, nil>,
 }

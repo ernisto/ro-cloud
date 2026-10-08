@@ -1,8 +1,7 @@
-local auth = require './auth'
-local universe = require './universe'
+local web = require './web'
+type endpoint<P, Q, B, R> = web.endpoint<P, Q, B, R>
 
 -- defs
-export type identity = { universe_id: number, pass_id: number }
 export type pass_data = {
 	name: string,
 	price: number?,
@@ -11,7 +10,14 @@ export type pass_data = {
 	isForSale: boolean?,
 	isRegionalPricingEnabled: boolean?,
 }
-export type pass_patch = pass_data & { name: string? }
+export type pass_patch = {
+	name: string?,
+	price: number?,
+	description: string?,
+	imageFile: buffer?,
+	isForSale: boolean?,
+	isRegionalPricingEnabled: boolean?,
+}
 export type pass_info = {
 	name: string,
 	isForSale: boolean,
@@ -26,34 +32,58 @@ export type pass_info = {
 	},
 }
 
-type page_query = { maxPageSize: number?, pageToken: string? }
 export type pass_page = {
-	gamePasses: { pass_data },
+	gamePasses: { pass_info },
 	nextPageToken: string,
 }
 
--- functions
-local function create(session: auth.session, universe_id: number, data: pass_data)
-	local url = `https://apis.roblox.com/game-passes/v1/universes/{universe_id}/game-passes`
-	return auth.request_json(session, 'POST', url, nil, auth.form(data)) :: auth.http_result<pass_info>
-end
-local function update(session: auth.session, pass: identity, data: pass_patch)
-	local url = `https://apis.roblox.com/game-passes/v1/universes/{pass.universe_id}/game-passes/{pass.pass_id}`
-	return auth.request_json(session, 'PATCH', url, nil, auth.form(data)) :: auth.http_result<nil>
-end
-local function get(session: auth.session, pass: identity)
-	local url = `https://apis.roblox.com/game-passes/v1/universes/{pass.universe_id}/game-passes/{pass.pass_id}/creator`
-	return auth.request_json(session, 'GET', url) :: auth.http_result<pass_info>
-end
-local function list(session: auth.session, subject: universe.identity, query: page_query?)
-	local url = `https://apis.roblox.com/game-passes/v1/universes/{subject.universe_id}/game-passes/creator`
-	return auth.request_json(session, 'GET', url, query) :: auth.http_result<pass_page>
-end
+local BASE = 'https://apis.roblox.com/game-passes/v1/universes/{universe_id}/game-passes'
+
+-- api key or cookie
+local READ: web.auth_spec = { cookie = {}, apikey = { scope = { ['game-pass:read'] = true } } }
+local WRITE: web.auth_spec = { cookie = {}, apikey = { scope = { ['game-pass:write'] = true } } }
+
+local UNIVERSE = table.freeze { universe_id = 0 }
+local ITEM = table.freeze { universe_id = 0, pass_id = 0 }
+local PAGE = table.freeze { pageSize = 0 :: number?, pageToken = '' :: string? }
+type universe_path = typeof(UNIVERSE)
+type pass_path = typeof(ITEM)
+export type page_query = typeof(PAGE)
 
 -- module
 return table.freeze {
-	create = create,
-	update = update,
-	get = get,
-	list = list,
+	create = web.endpoint {
+		base = BASE,
+		method = 'POST',
+		auth = WRITE,
+		ratelimit = { apikey = 300 },
+		path = UNIVERSE,
+		content_type = 'multipart/form-data',
+	} :: endpoint<universe_path, nil, pass_data, pass_info>,
+
+	update = web.endpoint {
+		base = `{BASE}/\{pass_id}`,
+		method = 'PATCH',
+		auth = WRITE,
+		ratelimit = { apikey = 300 },
+		path = ITEM,
+		content_type = 'multipart/form-data',
+	} :: endpoint<pass_path, nil, pass_patch, nil>,
+
+	get = web.endpoint {
+		base = `{BASE}/\{pass_id}/creator`,
+		method = 'GET',
+		auth = READ,
+		ratelimit = { apikey = 600 },
+		path = ITEM,
+	} :: endpoint<pass_path, nil, nil, pass_info>,
+
+	list = web.endpoint {
+		base = `{BASE}/creator`,
+		method = 'GET',
+		auth = READ,
+		ratelimit = { apikey = 600 },
+		path = UNIVERSE,
+		query = PAGE,
+	} :: endpoint<universe_path, page_query, nil, pass_page>,
 }

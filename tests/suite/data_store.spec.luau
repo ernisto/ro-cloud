@@ -1,16 +1,18 @@
 local cloud = require '@lib'
 local config = require '../config'
+local fetch = require('@utils/fetch').fetch
 
-local universe = { universe_id = config.universe_id }
-local store: any = {
-	universe_id = config.universe_id,
-	data_store_id = config.data_store_id,
-	scope_id = config.scope_id,
-}
+local auth = config.auth
 local run = {}
 
 function run.list_stores()
-	local res = cloud.data_store.list_stores(config.session, universe, { maxPageSize = 1 })
+	local res = fetch(
+		cloud.data_store.list_stores,
+		auth,
+		{ universe_id = config.universe_id },
+		nil,
+		{ maxPageSize = 1 }
+	)
 	assert(res.ok, `failed: {res.message}`)
 
 	local list = res.body.dataStores
@@ -18,7 +20,13 @@ function run.list_stores()
 end
 
 function run.list_entries()
-	local res = cloud.data_store.list_entries(config.session, store, { maxPageSize = 1 })
+	local res = fetch(
+		cloud.data_store.list_entries,
+		auth,
+		{ universe_id = config.universe_id, data_store_id = config.data_store_id, scope_id = config.scope_id },
+		nil,
+		{ maxPageSize = 1 }
+	)
 	if res.code == 404 then
 		print(`         skipped query check: store '{config.data_store_id}' not found`)
 		return
