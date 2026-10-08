@@ -6,12 +6,12 @@ local api_key = require '@self/api_key'
 local form = require '@self/form'
 local oauth = require '@self/oauth'
 
+-- defs
 export type session = oauth2_session | cookie_session | apikey_session
-export type oauth2_session = { oauth_state: oauth.state }
 export type apikey_session = { api_key_state: api_key.state }
+export type oauth2_session = { oauth_state: oauth.state }
 export type cookie_session = { cookie_state: string }
 
--- defs
 export type json = number | boolean | string | { json } | json_object?
 export type json_object = { [string]: json }
 export type query_params = {}
@@ -91,39 +91,32 @@ end
 local session_mt = {}
 session_mt.__index = session_mt
 
-local function clone(self): any
-	local new = {}
-	for k, v in self do
-		new[k] = v
-	end
+function session_mt.api_key(self, api_key: string)
+	local new = table.clone(self)
+	new.api_key_state = { key = api_key }
+
 	return setmetatable(new, session_mt)
 end
 
-function session_mt.api_key(self, api_key: string)
-	assert(api_key, 'no api key provided')
-	local new = clone(self)
-	new.api_key_state = { key = api_key }
-	return new
+function session_mt.oauth(self, session: oauth.state)
+	local new = table.clone(self)
+	new.oauth_state = session
+
+	return setmetatable(new, session_mt)
 end
 
 function session_mt.cookie(self, cookie: string)
-	assert(cookie, 'no cookie provided, use local_cookie() instead')
-	local new = clone(self)
+	local new = table.clone(self)
 	new.cookie_state = cookie
-	return new
+
+	return setmetatable(new, session_mt)
 end
 
 function session_mt.local_cookie(self)
 	local cookie = roblox.getAuthCookie()
 	assert(cookie, 'could not find your local cookie')
-	return self:cookie(cookie)
-end
 
-function session_mt.oauth(self, session: oauth.state)
-	assert(session.access_token, 'invalid oauth session, missing access_token')
-	local new = clone(self)
-	new.oauth_state = session
-	return new
+	return self:cookie(cookie)
 end
 
 -- module

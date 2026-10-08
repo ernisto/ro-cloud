@@ -4,6 +4,9 @@ local serde = require '@lune/serde'
 -- defs
 local INTROSPECT_URL = 'https://apis.roblox.com/api-keys/v1/introspect'
 
+export type state = { key: string, introspection: introspection? }
+export type session = { api_key_state: state }
+
 export type scope = {
 	name: string,
 	operations: { string },
@@ -19,15 +22,6 @@ export type introspection = {
 	enabled: boolean,
 	expired: boolean,
 	expirationUtcTime: string?,
-}
-
-export type state = {
-	key: string,
-	introspection: introspection?,
-}
-
-export type session = {
-	api_key_state: state,
 }
 
 -- functions
@@ -55,8 +49,7 @@ end
 
 local function await_introspect(session: session): introspection
 	local info, err = introspect(session)
-	if not info then error(`api key introspection failed: {err}`) end
-	return info
+	return info or error(`api key introspection failed: {err}`)
 end
 
 local function usable(info: introspection): boolean
