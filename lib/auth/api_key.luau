@@ -25,11 +25,8 @@ export type introspection = {
 }
 
 -- functions
-local function introspect(session: session): (introspection?, string?)
+local function refresh_introspection(session: session): (introspection?, string?)
 	local state = session.api_key_state
-	local cached = state.introspection
-	if cached then return cached, nil end
-
 	local headers: any = {
 		['Content-Type'] = 'application/json',
 		['x-api-key'] = state.key,
@@ -42,11 +39,23 @@ local function introspect(session: session): (introspection?, string?)
 
 	local info = serde.decode('json', res.body) :: introspection
 	state.introspection = info
+
 	return info, nil
+end
+
+local function introspect(session: session): (introspection?, string?)
+	local cached = session.api_key_state.introspection
+	if cached then return cached, nil end
+	return refresh_introspection(session)
 end
 
 local function await_introspect(session: session): introspection
 	local info, err = introspect(session)
+	return info or error(`api key introspection failed: {err}`)
+end
+
+local function await_refresh_introspection(session: session): introspection
+	local info, err = refresh_introspection(session)
 	return info or error(`api key introspection failed: {err}`)
 end
 
@@ -91,6 +100,8 @@ end
 return table.freeze {
 	introspect = introspect,
 	await_introspect = await_introspect,
+	await_refresh_introspection = await_refresh_introspection,
+
 	usable = usable,
 	has_scope = has_scope,
 	await_has_scope = await_has_scope,

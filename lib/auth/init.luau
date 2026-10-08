@@ -12,6 +12,7 @@ export type session = oauth2_session | cookie_session | apikey_session
 export type apikey_session = { api_key_state: api_key.state }
 export type oauth2_session = { oauth_state: oauth.state }
 export type cookie_session = { cookie_state: cookie.state }
+export type api_key_introspection = api_key.introspection
 
 export type json = number | boolean | string | { json } | json_object?
 export type json_object = { [string]: json }

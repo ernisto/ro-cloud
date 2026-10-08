@@ -2,6 +2,7 @@ local auth = require '@self/auth'
 export type apikey_session = auth.apikey_session
 export type cookie_session = auth.cookie_session
 export type oauth_session = auth.oauth2_session
+export type api_key_introspection = auth.api_key_introspection
 export type http_result<R, E> = auth.http_result<R, E>
 export type http_success<R> = auth.http_success<R>
 export type http_fail<R> = auth.http_fail<R>
