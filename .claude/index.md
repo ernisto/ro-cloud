@@ -4,11 +4,12 @@
 
 | File | Purpose |
 |------|---------|
-| `lib/auth/init.luau` | Single HTTP entry point. Class-based session: `cloud.auth.new:api_key(key)` / `:cookie(value)` / `:local_cookie()` (via `roblox.getAuthCookie()`) / `:oauth(session)` (stores it as `{ oauth = session }`) — each method returns an immutable clone of self with the field set. One `request` builds headers (`x-api-key` / `Cookie` + CSRF retry / `Authorization`) for all three auth methods; `request_json` wraps it. Helpers: `get_user_info`, `mask_from`, `form`, `api_key`. Types: `session`, `apikey_session` (`{ api_key_state: { key: string, introspection: api_key.introspection? } }`), `cookie_session`, `oauth2_session`, `http_result`, `json`, `query_params`. |
+| `lib/auth/init.luau` | Single HTTP entry point. Class-based session: `cloud.auth.new:api_key(key)` / `:cookie(value)` / `:local_cookie()` (via `roblox.getAuthCookie()`) / `:oauth(session)` (stores it as `{ oauth = session }`) — each method returns an immutable clone of self with the field set. One `request` builds headers (`x-api-key` / `Cookie` + CSRF retry / `Authorization`) for all three auth methods; `request_json` wraps it. Helpers: `mask_from`, `form`, `api_key`, `cookie`. Types: `session`, `apikey_session` (`{ api_key_state: { key: string, introspection: api_key.introspection? } }`), `cookie_session` (`{ cookie_state: cookie.state }`), `oauth2_session`, `http_result`, `json`, `query_params`. |
 | `lib/auth/oauth/init.luau` | OAuth2 PKCE flow: `create_authorization_url`, `exchange_code_for_token`, `refresh_token`, `is_session_expired`. |
 | `lib/auth/oauth/types.luau` | Types only: `session`, `oauth_error`. No functions. |
 | `lib/auth/api_key.luau` | API key introspection (`POST api-keys/v1/introspect`, uses `net`/`serde` directly to avoid a require cycle). `introspect(session)` → `(introspection?, err?)`, cached in `session.api_key_state.introspection`; `await_introspect(session)` (throws); `usable(info)`; `has_scope(info, scope, target?)` where `scope` is `name:operation` and `target` an optional resource id; `await_has_scope(session, scope, target?)`. Types: `scope`, `introspection`, `session`. |
 | `lib/auth/form.luau` | Multipart form builder (vendored). Returns a builder with `.text()`, `.file()`, `.build()`. |
+| `lib/auth/cookie.luau` | Cookie user info (`GET users.roblox.com/v1/users/authenticated`, uses `net`/`serde` directly to avoid a require cycle, with its own CSRF retry). `get_info(session)` → `(user?, err?)`, cached in `session.cookie_state.user_info`; `await_info(session)` (throws). Types: `user`, `state`, `session`. |
 
 ## lib/ (resources)
 

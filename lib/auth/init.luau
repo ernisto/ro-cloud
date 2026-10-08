@@ -3,6 +3,7 @@ local roblox = require '@lune/roblox'
 local serde = require '@lune/serde'
 
 local api_key = require '@self/api_key'
+local cookie = require '@self/cookie'
 local form = require '@self/form'
 local oauth = require '@self/oauth'
 
@@ -10,7 +11,7 @@ local oauth = require '@self/oauth'
 export type session = oauth2_session | cookie_session | apikey_session
 export type apikey_session = { api_key_state: api_key.state }
 export type oauth2_session = { oauth_state: oauth.state }
-export type cookie_session = { cookie_state: string }
+export type cookie_session = { cookie_state: cookie.state }
 
 export type json = number | boolean | string | { json } | json_object?
 export type json_object = { [string]: json }
@@ -42,7 +43,7 @@ local function request(
 	local headers: any = {
 		['Content-Type'] = content_type,
 		['x-api-key'] = if any_session.api_key_state then any_session.api_key_state.key else nil,
-		['Cookie'] = any_session.cookie_state,
+		['Cookie'] = if any_session.cookie_state then any_session.cookie_state.cookie else nil,
 		['Authorization'] = if any_session.oauth_state
 			then `{any_session.oauth_state.token_type} {any_session.oauth_state.access_token}`
 			else nil,
@@ -82,11 +83,6 @@ local function request_json<R, E>(
 	return safe_res :: any
 end
 
-type user = { id: number, name: string, displayName: string }
-local function get_user_info(session: cookie_session)
-	return request_json(session, 'GET', 'https://users.roblox.com/v1/users/authenticated') :: http_result<user>
-end
-
 -- class
 local session_mt = {}
 session_mt.__index = session_mt
@@ -105,9 +101,9 @@ function session_mt.oauth(self, session: oauth.state)
 	return setmetatable(new, session_mt)
 end
 
-function session_mt.cookie(self, cookie: string)
+function session_mt.cookie(self, cookie_value: string)
 	local new = table.clone(self)
-	new.cookie_state = cookie
+	new.cookie_state = { cookie = cookie_value }
 
 	return setmetatable(new, session_mt)
 end
@@ -122,7 +118,6 @@ end
 -- module
 return table.freeze {
 	new = setmetatable({}, session_mt) :: any,
-	get_user_info = get_user_info,
 	request_json = request_json,
 	request = request,
 
@@ -130,5 +125,6 @@ return table.freeze {
 	form = form.by_table,
 
 	api_key = api_key,
+	cookie = cookie,
 	oauth = oauth,
 }
