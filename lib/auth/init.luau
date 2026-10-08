@@ -2,12 +2,13 @@ local net = require '@lune/net'
 local roblox = require '@lune/roblox'
 local serde = require '@lune/serde'
 
+local api_key = require '@self/api_key'
 local form = require '@self/form'
 local oauth = require '@self/oauth'
 
 export type session = oauth2_session | cookie_session | apikey_session
 export type oauth2_session = { oauth_state: oauth.state }
-export type apikey_session = { api_key_state: string }
+export type apikey_session = { api_key_state: api_key.state }
 export type cookie_session = { cookie_state: string }
 
 -- defs
@@ -40,7 +41,7 @@ local function request(
 	local any_session = session :: any
 	local headers: any = {
 		['Content-Type'] = content_type,
-		['x-api-key'] = any_session.api_key_state,
+		['x-api-key'] = if any_session.api_key_state then any_session.api_key_state.key else nil,
 		['Cookie'] = any_session.cookie_state,
 		['Authorization'] = if any_session.oauth_state
 			then `{any_session.oauth_state.token_type} {any_session.oauth_state.access_token}`
@@ -101,7 +102,7 @@ end
 function session_mt.api_key(self, api_key: string)
 	assert(api_key, 'no api key provided')
 	local new = clone(self)
-	new.api_key_state = api_key
+	new.api_key_state = { key = api_key }
 	return new
 end
 
@@ -135,5 +136,6 @@ return table.freeze {
 	mask_from = mask_from,
 	form = form.by_table,
 
+	api_key = api_key,
 	oauth = oauth,
 }

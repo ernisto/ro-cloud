@@ -22,7 +22,8 @@ assert(config.api_key, 'API_KEY required (--api-key or env)')
 assert(config.universe_id, 'UNIVERSE_ID required (--universe-id or env)')
 
 local suites = {
-	{ name = 'universe', suite = require './suite/universe.spec' } :: any,
+	{ name = 'auth', suite = require './suite/auth.spec' } :: any,
+	{ name = 'universe', suite = require './suite/universe.spec' },
 	{ name = 'place', suite = require './suite/place.spec' },
 	{ name = 'data_store', suite = require './suite/data_store.spec' },
 	{ name = 'memory_store', suite = require './suite/memory_store.spec' },
@@ -37,7 +38,12 @@ local suites = {
 
 for _, entry in suites do
 	print(`\n[{entry.name}]`)
-	entry.suite.run(config, runner)
+	local suite = entry.suite :: any
+	local run = suite.run or suite
+	for name, fn in run do
+		if type(fn) ~= 'function' then continue end
+		runner.test(name, fn)
+	end
 end
 
 local p, f, s = runner.summary()
