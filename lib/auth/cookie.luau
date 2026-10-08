@@ -46,4 +46,4 @@ local function await_info(session: session): user
 end
 
 -- module
-return table.freeze { get_info = get_info, await_info = await_info }
+return table.freeze { await_info = await_info }

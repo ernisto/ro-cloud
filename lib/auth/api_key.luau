@@ -30,15 +30,13 @@ local function introspect(session: session): (introspection?, string?)
 	local cached = state.introspection
 	if cached then return cached, nil end
 
-	local res = net.request {
-		url = INTROSPECT_URL,
-		method = 'POST',
-		headers = {
-			['Content-Type'] = 'application/json',
-			['x-api-key'] = state.key,
-		},
-		body = serde.encode('json', { apiKey = state.key }),
+	local headers: any = {
+		['Content-Type'] = 'application/json',
+		['x-api-key'] = state.key,
 	}
+
+	local body = serde.encode('json', { apiKey = state.key })
+	local res = net.request { url = INTROSPECT_URL, method = 'POST', headers = headers, body = body }
 
 	if not res.ok then return nil, res.statusMessage end
 
