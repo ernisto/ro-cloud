@@ -16,6 +16,7 @@
 | File | Identity type | Exported functions |
 |------|---------------|--------------------|
 | `lib/universe.luau` | `{ universe_id }` | `create` (cookie-only, `universes/v1/universes/create`), `get`, `update`, `publish_message`, `shutdown`, `list_secrets`, `create_secret`, `delete_secret`, `update_secret`, `get_public_key` |
+| `lib/universe_media.luau` | `{ universe_id }` | `upload_icon`, `remove_icon` (cookie-only), `upload_thumbnail`, `list_thumbnails`, `set_thumbnail_order`, `delete_thumbnail` — legacy web APIs (`publish`/`games`/`develop`/`www.roblox.com`) |
 | `lib/place.luau` | `{ universe_id, place_id, version? }` | `upload`, `download`, `get_info`, `update_info`, `get_instance`, `update_instance`, `list_instance_children` |
 | `lib/asset.luau` | `{ asset_id }` | `create`, `update`, `get`, `archive`, `restore`, `get_version`, `list_versions`, `rollback`, `get_operation`, `wait_for_operation` |
 | `lib/data_store.luau` | `store_identity { universe_id, data_store_id, scope_id? }` / `entry_identity` | `list_stores`, `delete_store`, `undelete_store`, `snapshot`, `list_entries`, `create_entry`, `get_entry`, `update_entry`, `delete_entry`, `increment_entry`, `list_entry_revisions`, + ordered-datastore variants |
@@ -74,6 +75,7 @@
 | Module | API base path |
 |--------|--------------|
 | `universe` | `cloud/v2/universes/{id}` |
+| `universe_media` | `publish.roblox.com/v1/games/{id}/…` (upload); `games.roblox.com/v1/games/{id}/media`; `develop.roblox.com/v1/universes/{id}/thumbnails/…`; `www.roblox.com/places/icons/remove-icon` |
 | `place` | `cloud/v2/universes/{id}/places/{id}` (info/instances); `universes/v1/…` (upload); `assetdelivery.roblox.com` (download) |
 | `asset` | `assets/v1/assets/{id}` |
 | `data_store` | `cloud/v2/universes/{id}/data-stores/{id}` |

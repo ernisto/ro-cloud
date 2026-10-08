@@ -83,11 +83,6 @@ local function shutdown(session: auth.apikey_session | auth.oauth2_session, subj
 	local url = `https://apis.roblox.com/cloud/v2/universes/{subject.universe_id}:restartServers`
 	return auth.request_json(session, 'POST', url) :: auth.http_result<nil>
 end
-local function publish_thumbnail(session: auth.apikey_session | auth.oauth2_session, subject: identity, image: buffer)
-	local url = `https://publish.roblox.com/v1/games/{subject.universe_id}/thumbnail/image`
-	local body = auth.form { request = image }
-	return auth.request_json(session, 'POST', url, nil, body) :: auth.http_result<{ targetId: number }>
-end
 
 -- module
 return table.freeze {
@@ -96,5 +91,4 @@ return table.freeze {
 	update = update,
 	publish_message = publish_message,
 	shutdown = shutdown,
-	publish_thumbnail = publish_thumbnail,
 }

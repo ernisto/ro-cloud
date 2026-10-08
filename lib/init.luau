@@ -29,6 +29,10 @@ local universe_secret = require '@self/universe_secret'
 export type universe_secret = universe_secret.secret
 export type universe_public_key = universe_secret.public_key
 
+local universe_media = require '@self/universe_media'
+export type universe_media_item = universe_media.media_item
+export type universe_media_upload_response = universe_media.upload_response
+
 local universe_configuration = require '@self/universe_configuration'
 export type universe_settings_patch = universe_configuration.settings_patch_v2
 export type universe_settings_data = universe_configuration.settings_data_v2
@@ -90,6 +94,7 @@ return table.freeze {
 	auth = auth,
 	universe = universe,
 	universe_secret = universe_secret,
+	universe_media = universe_media,
 	universe_configuration = universe_configuration,
 	place_configuration = place_configuration,
 	place = place,
