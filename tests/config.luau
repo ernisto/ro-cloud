@@ -7,9 +7,12 @@ local cookie = env.str 'COOKIE'
 if not api_key then warn 'missing API_KEY env var' end
 if not cookie then warn 'missing COOKIE env var' end
 
+local s = cloud.auth.new
+s = if api_key then s:api_key(api_key) else s
+s = if cookie then s:cookie(cookie) else s:local_cookie()
+
 return table.freeze {
-	session = api_key and cloud.auth.new:api_key(api_key),
-	cookie_session = cookie and cloud.auth.new:cookie(cookie),
+	session = s,
 
 	universe_id = 7176734135,
 	place_id = 102181929056899,

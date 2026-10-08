@@ -1,7 +1,7 @@
 local cloud = require '@lib'
 local config = require '../config'
 
-local session = config.cookie_session :: cloud.cookie_session
+local session = config.session
 
 local focus = {}
 local skip = {}
@@ -27,9 +27,11 @@ function run.get_group_universes()
 	assert(group_res.ok)
 	if #group_res.body.data == 0 then return end
 
-	local res = cloud.develop.get_group_universes(session, { group_id = group_res.body[1].id })
+	local res = cloud.develop.get_group_universes(session, { group_id = group_res.body.data[1].id })
 	assert(res.ok and type(res.body.data) == 'table', 'expected data.data to be a table')
 end
 
 if not session then warn(`COOKIE required for develop.spec tests`) end
-return if session then { run = run, skip = skip, focus = focus } else { run = {}, skip = run, focus = focus }
+return if session.cookie_state
+	then { run = run, skip = skip, focus = focus }
+	else { run = {}, skip = run, focus = focus }

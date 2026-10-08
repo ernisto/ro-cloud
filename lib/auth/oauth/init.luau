@@ -1,14 +1,29 @@
 local net = require '@lune/net'
 local pkce = require '@self/pkce'
 local serde = require '@lune/serde'
-local types = require '@self/types'
 
 -- defs
 local API_ENDPOINT = 'https://apis.roblox.com/'
 
-export type permission = types.permission
-export type state = types.session
-export type oauth_error = types.oauth_error
+export type permission = 'openid' | 'profile'
+
+export type state = {
+	access_token: string,
+	refresh_token: string,
+	token_type: 'Bearer' | string,
+	expires_in: number,
+	id_token: string?,
+	scope: { permission },
+	-- additional fields for session management
+	created_at: number,
+	expires_at: number,
+}
+
+export type oauth_error = {
+	error: string,
+	error_description: string?,
+	error_uri: string?,
+}
 
 -- functions
 local function create_authorization_url(
