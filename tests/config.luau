@@ -1,19 +1,34 @@
 local cloud = require '@lib'
-local env = require '@utils/env'
-local roblox = require '@lune/roblox'
+local fs = require '@std/fs'
+local process = require '@std/process'
 
-local api_key = env.str 'API_KEY'
-local cookie = env.str 'COOKIE' or roblox.getAuthCookie()
+local session: cloud.auth?
 
-if not api_key then warn 'missing API_KEY env var' end
-if not cookie then warn 'missing COOKIE env var and no local cookie found' end
+local function auth(): cloud.auth
+	if session then return session end
 
-local session = cloud.auth.new
-session = if api_key then session:api_key(api_key) else session
-session = if cookie then session:cookie(cookie) else session
+	local dotenv = {}
+	if fs.exists '.env' then
+		for key, val in string.gmatch(fs.readFileToString '.env', [[([%w_]+)%s*=%s*["']?([^"'%c]*)]]) do
+			dotenv[key] = val
+		end
+	end
+
+	local api_key = dotenv.API_KEY or process.env.API_KEY
+	local cookie = dotenv.COOKIE or process.env.COOKIE
+
+	if not api_key then print 'missing API_KEY env var' end
+	if not cookie then print 'missing COOKIE env var and no local cookie found' end
+
+	local new = cloud.auth.new
+	new = if api_key then new:api_key(api_key) else new
+	new = if cookie then new:cookie(cookie) else new
+	session = new
+	return new
+end
 
 return table.freeze {
-	auth = session,
+	auth = auth,
 
 	universe_id = 7176734135,
 	place_id = 102181929056899,

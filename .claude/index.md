@@ -1,6 +1,6 @@
 # Project Index
 
-`lib/` is runtime agnostic: every endpoint is a `web.endpoint { ... }` cast to `endpoint<Path, Query, Body, Response, ErrResponse = error>` inside its module's returned table. `path` / `query` fields are sample values (typing the `request` args); `def:request(auth, path?, body?, query?)` returns `{ url, method, headers, body: buffer? }`. Sending happens outside lib (`utils/fetch.luau` for Lune). No `@lune/*` in `lib/`.
+`lib/` is runtime agnostic: every endpoint is a `web.endpoint { ... }` cast to `endpoint<Path, Query, Body, Response, ErrResponse = error>` inside its module's returned table. `path` / `query` fields are sample values (typing the `request` args); `def:request(auth, path?, body?, query?)` returns `{ url, method, headers, body: buffer? }`. Sending happens outside lib (`tests/fetch.luau` for lute). No runtime modules in `lib/`.
 
 ## lib/ (core)
 
@@ -37,31 +37,14 @@ Listed as `name(path) body → query`: `path` keys fill the url, `body` is the r
 | `lib/luau_task_exec.luau` | `create(universe_id, place_id, version?) task_input`, `get(path)`, `list_logs(path) → page, view?` (`path` = `task.path`) |
 | `lib/develop.luau` | cookie, `develop.roblox.com`: `get_user_universes() → page`, `get_group_universes(group_id) → page`, `get_groups()`, `list_universe_places(universe_id) → page` |
 
-## utils/ (Lune only)
-
-| File | Purpose |
-|------|---------|
-| `utils/fetch.luau` | `fetch(def, auth, path?, body?, query?)` → `http_result<R, E>` (`{ ok, code, message, body }`): builds the request, sends via `@lune/net`, retries once with the CSRF token on cookie 403 (caching it in `auth.cookie_state.csrf_token`), json-decodes the body, surfaces `errors[1]`. `send(request)`. |
-| `utils/cli.luau` | CLI arg parser. Returns `str(key)`, `num(key|pos)`, `uint(key|pos)`, `bool(flag)`, `forwarded`. Supports `--key value`, `--key=value`, `-f`, `--` forwarding. |
-| `utils/bytes.luau` | Byte helpers. |
-| `utils/env.luau` | Env helpers; reads `.env` (TOML) then process env. |
-
-## cli/
-
-| File | Purpose |
-|------|---------|
-| `cli/init.luau` | Dispatches `place download` / `luau exec`. |
-| `cli/download_place.luau` | `place download <place_id> --output <path> --api-key <key> --cache <seconds>`. Uses `asset.download`, then fetches the location. |
-| `cli/luau_exec.luau` | `luau exec <universe_id> <place_id> --script <code> \| --script-path <path>` `--api-key` `--poll-rate` `--timeout` `--version` `--focus`. Polls the task until done, prints FLAT logs. |
-
 ## tests/
 
 | File | Purpose |
 |------|---------|
-| `tests/run.luau` | Entry point. Runs all suites, prints summary. Exit code 1 on any failure. |
-| `tests/config.luau` | `auth` session (`API_KEY`, `COOKIE` or local Studio cookie) and fixed resource ids. |
+| `tests/config.luau` | `auth()` lazy session (`.env` / env `API_KEY`, `COOKIE` or local Studio cookie on Windows) and fixed resource ids. |
+| `tests/fetch.luau` | `fetch(def, auth, path?, body?, query?)` → `http_result<R, E>` (`{ ok, code, message, body }`): sends via `@std/net`, retries once with the CSRF token on cookie 403 (caching it in `auth.cookie_state.csrf_token`), json-decodes the body, surfaces `errors[1]`. `send(request)`. |
 | `tests/suite/api.spec.luau` | Offline: url/query/header building, path vs query split, optional path segments, credential selection, empty json / multipart bodies, json encoding. |
-| `tests/suite/*.spec.luau` | Live read-only checks per resource (`auth`, `universe`, `place`, `data_store`, `memory_store`, `user_restriction`, `game_pass`, `developer_product`, `user`, `group`, `asset`, `develop`). |
+| `tests/suite/*.spec.luau` | `@std/test` suites run by `lute test`. Live read-only checks per resource (`auth`, `universe`, `place`, `data_store`, `memory_store`, `user_restriction`, `game_pass`, `developer_product`, `user`, `group`, `asset`, `develop`). |
 
 ## Scopes / ratelimits source
 

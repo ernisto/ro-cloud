@@ -1,11 +1,11 @@
 ## Overview
 
-`ro-cloud` is a [pesde](https://pesde.dev) package providing a Luau library for the [Roblox Open Cloud API](https://create.roblox.com/docs/cloud/open-cloud). The library (`lib/`) is **runtime agnostic**: it never requires `@lune/*` (or any runtime module), it only describes apis and builds requests. [Lune](https://lune-org.github.io/docs) is used only by `utils/`, `cli/` and `tests/`.
+`ro-cloud` is a [pesde](https://pesde.dev) package providing a Luau library for the [Roblox Open Cloud API](https://create.roblox.com/docs/cloud/open-cloud). The library (`lib/`) is **runtime agnostic**: it never requires `@std/*`, `@lute/*` (or any runtime module), it only describes apis and builds requests. [Lute](https://github.com/luau-lang/lute) is used only by `tests/` and `scripts/`.
 
 ## Toolchain
 
 Managed via **Rokit** (`aftman.toml`):
-- `lune` — runtime for executing `.luau` scripts
+- `lute` — runtime and test runner
 - `stylua` — code formatter
 - `luau-lsp` — language server
 
@@ -16,10 +16,10 @@ Install dependencies: `pesde install`
 
 ```bash
 # Run a script
-lune run <script_path>
+lute run <script_path>
 
-# Run a CLI script (example)
-lune run cli/download_place.luau -- <place_id> --output out.rbxl --api-key <key>
+# Run tests
+lute test
 
 # Format code
 stylua .
@@ -32,16 +32,15 @@ stylua --check .
 
 ### Module structure
 
-- `lib/` — the published, runtime agnostic library (entry point: `lib/init.luau`). Must not require `@lune/*`, `@utils` or anything runtime specific.
+- `lib/` — the published, runtime agnostic library (entry point: `lib/init.luau`). Must not require `@std/*`, `@lute/*` or anything runtime specific.
   - `lib/web/` — generic web plumbing, not tied to any resource:
     - `lib/web/init.luau` (`web`) — the `endpoint<>` type, `web.endpoint {}` constructor, `auth`/`request` types, `build` (url templating from `path`, query encoding, auth headers, json / multipart body encoding) and `with_update_mask`
     - `lib/web/json.luau` — minimal json encoder (decoding is left to the runtime)
     - `lib/web/form.luau` — multipart form builder
   - `lib/auth/` — session builder (`auth.new:api_key(key):cookie(cookie)`), `auth.api_key` (`introspect` api + pure `has_scope` / `usable`), `auth.cookie` (`get_info` api)
   - One file per resource: `universe`, `universe_secret`, `universe_media`, `universe_configuration`, `place`, `place_configuration`, `asset`, `data_store`, `memory_store`, `user`, `user_restriction`, `group`, `developer_product`, `game_pass`, `luau_task_exec`, `develop`
-- `utils/` — Lune helpers not part of the public API (`fetch.luau` sends lib requests, `cli.luau`, `bytes.luau`, `env.luau`)
-- `cli/` — standalone Lune scripts that use the library
-- `docs/examples/` — runnable example scripts
+- `tests/` — lute tests (`fetch.luau` sends lib requests, `config.luau` holds credentials and ids)
+- `scripts/` — lute maintenance scripts
 
 ### Patterns
 
@@ -81,26 +80,24 @@ return table.freeze {
 
 `auth` is a session: `cloud.auth.new:api_key(key):cookie(cookie)` (`{ api_key_state?, cookie_state? }`).
 
-Sending requests (Lune): `fetch(cloud.universe.get, cloud.auth.new:api_key(key), { universe_id = 1 }, body?, query?)` from `utils/fetch.luau` returns `{ ok, code, message, body }` and handles the cookie CSRF retry.
+Sending requests (lute): `fetch(cloud.universe.get, cloud.auth.new:api_key(key), { universe_id = 1 }, body?, query?)` from `tests/fetch.luau` returns `{ ok, code, message, body }` and handles the cookie CSRF retry.
 
 Type check: `luau-lsp analyze --platform=standard --flag:LuauSolverV2=true lib/*.luau lib/auth/*.luau lib/web/*.luau`
 
 ### Type aliases
 
 `.luaurc` defines aliases used throughout:
-- `@lune/*` — Lune standard library (never in `lib/`)
+- `@std/*`, `@lute/*` — lute typedefs, for type checking only (never in `lib/`)
 - `@lib` → `./lib`
-- `@utils` → `./utils`
-- `@pkg` → `./lune_packages`
 - `@self` — resolves within the current package (pesde convention)
 
 ## Integration Tests
 
 ```bash
-lune run tests/run.luau
+lute test
 ```
 
-Credentials come from `.env` (TOML format) or environment variables (`API_KEY`, `COOKIE`; cookie falls back to the local Roblox Studio cookie). Resource ids live in `tests/config.luau`. `tests/suite/api.spec.luau` checks request building offline; the rest hit the live api and only perform read operations — no data is modified.
+Credentials come from `.env` (`KEY = "value"` lines) or environment variables (`API_KEY`, `COOKIE`; cookie falls back to the local Roblox Studio cookie on Windows). Resource ids live in `tests/config.luau`. `tests/suite/api.spec.luau` checks request building offline; the rest hit the live api (`config.auth()` is lazy: modules can't yield while loading) and only perform read operations — no data is modified.
 
 ## Project Index
 

@@ -21,8 +21,8 @@ export type endpoint<Path, Query, Body, Response, ErrResponse = error> = {
 	body: Body,
 	query: Query,
 
-	content_type: string?,
-	responses: { ['200']: Response, [string]: ErrResponse }?,
+	content_type: string,
+	responses: { ['200']: Response, [string]: ErrResponse },
 
 	request: (
 		self: endpoint<Path, Query, Body, Response, ErrResponse>,

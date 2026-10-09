@@ -1,8 +1,6 @@
--- lune adapter: sends `lib` api requests and decodes their responses
-local net = require '@lune/net'
-local serde = require '@lune/serde'
-
 local cloud = require '@lib'
+local json = require '@std/json'
+local net = require '@std/net'
 
 -- defs
 export type http_result<R, E> = http_success<R> | http_fail<E>
@@ -10,14 +8,18 @@ export type http_success<R> = { ok: true, code: number, message: string, body: R
 export type http_fail<E> = { ok: false, code: number, message: string, body: E }
 
 -- helpers
-local function send(req: cloud.request): net.FetchResponse
-	return net.request { url = req.url, method = req.method, headers = req.headers, body = req.body }
+local function send(req: cloud.request): net.Response
+	return net.request(req.url, {
+		method = req.method :: any,
+		headers = req.headers,
+		body = if req.body then buffer.tostring(req.body) else nil,
+	})
 end
 
 local function decode(raw: string): any
 	if not string.match(raw, '^%s*[%[{]') then return nil end
 
-	local ok, body = pcall(serde.decode, 'json' :: 'json', raw)
+	local ok, body = pcall(json.deserialize, raw)
 	return if ok then body else nil
 end
 
@@ -34,7 +36,7 @@ local function fetch<P, Q, B, R, E>(
 
 	-- cookie apis hand out a csrf token on the first 403; cached in the session for next calls
 	local token = res.headers['x-csrf-token']
-	if res.statusCode == 403 and type(token) == 'string' and req.headers.Cookie and auth.cookie_state then
+	if res.status == 403 and token and req.headers.Cookie and auth.cookie_state then
 		auth.cookie_state.csrf_token = token
 		res = send(def:request(auth, path, body, query))
 	end
@@ -44,8 +46,8 @@ local function fetch<P, Q, B, R, E>(
 
 	return {
 		ok = res.ok and not err,
-		code = if err then err.code else res.statusCode,
-		message = if err then err.message else res.statusMessage,
+		code = if err then err.code else res.status,
+		message = if err then err.message else `http {res.status}`,
 		body = decoded,
 	} :: any
 end

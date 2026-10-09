@@ -1,29 +1,40 @@
 local cloud = require '@lib'
 local config = require '../config'
 local fetch = require('../fetch').fetch
+local test = require '@std/test'
 
-local auth = config.auth
-local run = {}
+test.suite('group', function(s)
+	s:case('get', function(t)
+		local res = fetch(cloud.group.get, config.auth(), { group_id = config.group_id })
+		assert(res.ok, `failed: {res.message}`)
+		t.that(res.body.path, 'missing path')
+	end)
 
-function run.get()
-	local res = fetch(cloud.group.get, auth, { group_id = config.group_id })
-	assert(res.ok and res.body.path, 'missing path')
-end
+	s:case('list_roles', function(t)
+		local res = fetch(
+			cloud.group.list_roles,
+			config.auth(),
+			{ group_id = config.group_id },
+			nil,
+			{ maxPageSize = 1 }
+		)
+		assert(res.ok, `failed: {res.message}`)
 
-function run.list_roles()
-	local res = fetch(cloud.group.list_roles, auth, { group_id = config.group_id }, nil, { maxPageSize = 1 })
-	assert(res.ok, `failed: {res.message}`)
+		local list = res.body.groupRoles
+		t.that(type(list) == 'table' and #list <= 1, 'maxPageSize=1 not honored')
+	end)
 
-	local list = res.body.groupRoles
-	assert(type(list) == 'table' and #list <= 1, `maxPageSize=1 not honored (got {#list})`)
-end
+	s:case('list_memberships', function(t)
+		local res = fetch(
+			cloud.group.list_memberships,
+			config.auth(),
+			{ group_id = config.group_id },
+			nil,
+			{ maxPageSize = 1 }
+		)
+		assert(res.ok, `failed: {res.message}`)
 
-function run.list_memberships()
-	local res = fetch(cloud.group.list_memberships, auth, { group_id = config.group_id }, nil, { maxPageSize = 1 })
-	assert(res.ok, `failed: {res.message}`)
-
-	local list = res.body.groupMemberships
-	assert(type(list) == 'table' and #list <= 1, `maxPageSize=1 not honored (got {#list})`)
-end
-
-return run
+		local list = res.body.groupMemberships
+		t.that(type(list) == 'table' and #list <= 1, 'maxPageSize=1 not honored')
+	end)
+end)
