@@ -1,6 +1,6 @@
 local cloud = require '@lib'
 local config = require '../config'
-local fetch = require('@utils/fetch').fetch
+local fetch = require('../fetch').fetch
 
 local auth = config.auth
 local run = {}
