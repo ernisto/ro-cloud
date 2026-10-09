@@ -1,6 +1,6 @@
 [tools]
-luau-lsp = "johnnymorganz/luau-lsp@1.68.0"
+luau-lsp = "johnnymorganz/luau-lsp@1.70.1"
 stylua = "johnnymorganz/stylua@2.5.2"
 pesde = "pesde-pkg/pesde@0.7.4+registry.0.2.3"
-lune = "lune-org/lune@0.10.4"
+lune = "lune-org/lune@0.10.5"
 lute = "luau-lang/lute@1.0.0"
