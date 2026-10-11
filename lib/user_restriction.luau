@@ -1,5 +1,4 @@
 local web = require './web'
-type endpoint<P, Q, B, R> = web.endpoint<P, Q, B, R>
 
 -- defs
 type game_join_restriction = {
@@ -66,7 +65,7 @@ local restriction_request = subject_request '/{user_restriction_id}'
 
 -- module
 return table.freeze {
-	list = web.endpoint {
+	list = web.endpoint<<subject_path, page_query, nil, restrictions_page>> {
 		base = UNIVERSE,
 		method = 'GET',
 		auth = READ,
@@ -74,18 +73,18 @@ return table.freeze {
 		path = SUBJECT,
 		query = PAGE,
 		request = subject_request '',
-	} :: endpoint<subject_path, page_query, nil, restrictions_page>,
+	},
 
-	get = web.endpoint {
+	get = web.endpoint<<restriction_path, nil, nil, restriction>> {
 		base = `{UNIVERSE}/\{user_restriction_id}`,
 		method = 'GET',
 		auth = READ,
 		ratelimit = RATELIMIT,
 		path = RESTRICTION,
 		request = restriction_request,
-	} :: endpoint<restriction_path, nil, nil, restriction>,
+	},
 
-	update = web.endpoint {
+	update = web.endpoint<<restriction_path, update_query, restriction, restriction>> {
 		base = `{UNIVERSE}/\{user_restriction_id}`,
 		method = 'PATCH',
 		auth = WRITE,
@@ -98,14 +97,14 @@ return table.freeze {
 			params.updateMask = web.mask_from(data)
 			return restriction_request(self, auth, path, data, params)
 		end,
-	} :: endpoint<restriction_path, update_query, restriction, restriction>,
+	},
 
-	list_logs = web.endpoint {
+	list_logs = web.endpoint<<{ universe_id: number }, logs_query, nil, restriction_logs_page>> {
 		base = `{UNIVERSE}:listLogs`,
 		method = 'GET',
 		auth = READ,
 		ratelimit = RATELIMIT,
 		path = { universe_id = 0 },
 		query = LOGS,
-	} :: endpoint<{ universe_id: number }, logs_query, nil, restriction_logs_page>,
+	},
 }

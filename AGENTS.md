@@ -34,7 +34,7 @@ stylua --check .
 
 - `lib/` — the published, runtime agnostic library (entry point: `lib/init.luau`). Must not require `@std/*`, `@lute/*` or anything runtime specific.
   - `lib/web/` — generic web plumbing, not tied to any resource:
-    - `lib/web/init.luau` (`web`) — the `endpoint<>` type, `web.endpoint {}` constructor, `auth`/`request` types, `build` (url templating from `path`, query encoding, auth headers, json / multipart body encoding) and `with_update_mask`
+    - `lib/web/init.luau` (`web`) — the `endpoint<>` type, `web.endpoint<<>> {}` constructor, `auth`/`request` types, `build` (url templating from `path`, query encoding, auth headers, json / multipart body encoding) and `with_update_mask`
     - `lib/web/json.luau` — minimal json encoder (decoding is left to the runtime)
     - `lib/web/form.luau` — multipart form builder
   - `lib/auth/` — session builder (`auth.new:api_key(key):cookie(cookie)`), `auth.api_key` (`introspect` api + pure `has_scope` / `usable`), `auth.cookie` (`get_info` api)
@@ -44,7 +44,7 @@ stylua --check .
 
 ### Patterns
 
-Every endpoint is a `web.endpoint {}` of type `endpoint<Path, Query, Body, Response, ErrResponse = error>` (`lib/web/init.luau`):
+Every endpoint is a `web.endpoint<<Path, Query, Body, Response>> {}` of type `endpoint<Path, Query, Body, Response, ErrResponse = error>` (`lib/web/init.luau`):
 
 ```luau
 local WRITE: web.auth_spec = { apikey = { scope = { ['universe:write'] = true } }, cookie = {} }
@@ -53,7 +53,7 @@ local UNIVERSE = table.freeze { universe_id = 0 }
 type universe_path = typeof(UNIVERSE)
 
 return table.freeze {
-	update = web.endpoint {
+	update = web.endpoint<<universe_path, { allowMissing: boolean? }, universe_patch, universe_data>> {
 		base = 'https://apis.roblox.com/cloud/v2/universes/{universe_id}', -- url template, filled from `path`
 		method = 'PATCH',
 		auth = WRITE, -- accepted credentials (always an alias)
@@ -62,12 +62,12 @@ return table.freeze {
 		query = { allowMissing = false :: boolean? }, -- sample of the url query string, when any
 		content_type = 'application/json', -- only when there's a body
 		request = web.with_update_mask, -- optional, defaults to `build(self, auth, { path, body, query })`
-	} :: endpoint<universe_path, { allowMissing: boolean? }, universe_patch, universe_data>,
+	},
 }
 ```
 
 - `auth` values are always module-level `UPPER_CASE` aliases (`local READ: web.auth_spec = ...`, or `scoped '...'` helpers), never inline tables.
-- Defs live inside the module's returned table, built with `web.endpoint {}` and typed with a `:: endpoint<...>` cast (`web.endpoint` returns `any`).
+- Defs live inside the module's returned table, built with `web.endpoint<<Path, Query, Body, Response>> {}` (explicit instantiation; `Body` / `Response` can't be inferred from the def).
 - `path` / `query` are sample values (shared ones as frozen `UPPER_CASE` tables with `type x = typeof(X)`); optional fields use `0 :: number?`. Endpoints with neither set `path = nil` (generic inference needs one of them).
 - `def:request(auth, path?, body?, query?)` returns `{ url, method, headers, body }` (`body` is always a `buffer?`; `json.encode` and form bodies produce buffers). Path keys only fill the url, query keys only go to the query string.
 - Json endpoints without a body send `{}`; table bodies on `multipart/form-data` endpoints are form-encoded by `build`.

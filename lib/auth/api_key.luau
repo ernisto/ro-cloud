@@ -1,5 +1,4 @@
 local web = require '../web'
-type endpoint<P, Q, B, R> = web.endpoint<P, Q, B, R>
 
 -- defs
 export type scope = {
@@ -57,7 +56,7 @@ local NONE: web.auth_spec = { apikey = { scope = {} } }
 -- module
 return table.freeze {
 	-- describes the session's api key itself
-	introspect = web.endpoint {
+	introspect = web.endpoint<<nil, nil, nil, introspection>> {
 		base = 'https://apis.roblox.com/api-keys/v1/introspect',
 		method = 'POST',
 		auth = NONE,
@@ -67,7 +66,7 @@ return table.freeze {
 			local key = auth.api_key_state
 			return web.build(self, auth, { body = { apiKey = key and key.key } })
 		end,
-	} :: endpoint<nil, nil, nil, introspection>,
+	},
 
 	usable = usable,
 	has_scope = has_scope,

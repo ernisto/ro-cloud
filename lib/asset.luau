@@ -1,7 +1,6 @@
 local json = require './web/json'
 
 local web = require './web'
-type endpoint<P, Q, B, R> = web.endpoint<P, Q, B, R>
 
 -- defs
 type creation_context = { creator: string?, expectedPrice: number? }
@@ -83,15 +82,15 @@ end
 
 -- module
 return table.freeze {
-	download = web.endpoint {
+	download = web.endpoint<<asset_path, { version: number? }, nil, download_location>> {
 		base = 'https://apis.roblox.com/asset-delivery-api/v1/assetId/{asset_id}',
 		method = 'GET',
 		auth = LEGACY_MANAGE,
 		path = ASSET,
 		query = { version = 0 :: number? },
-	} :: endpoint<asset_path, { version: number? }, nil, download_location>,
+	},
 
-	create = web.endpoint {
+	create = web.endpoint<<nil, nil, asset_upload, asset_operation>> {
 		base = ASSETS,
 		method = 'POST',
 		auth = WRITE,
@@ -101,9 +100,9 @@ return table.freeze {
 		request = function(self, auth, _, upload)
 			return web.build(self, auth, { body = upload_form(upload) })
 		end,
-	} :: endpoint<nil, nil, asset_upload, asset_operation>,
+	},
 
-	update = web.endpoint {
+	update = web.endpoint<<asset_path, nil, asset_upload, asset_operation>> {
 		base = `{ASSETS}/\{asset_id}`,
 		method = 'PATCH',
 		auth = WRITE,
@@ -114,34 +113,34 @@ return table.freeze {
 			local query = { updateMask = web.mask_from(upload.asset) }
 			return web.build(self, auth, { path = path, query = query, body = upload_form(upload) })
 		end,
-	} :: endpoint<asset_path, nil, asset_upload, asset_operation>,
+	},
 
-	get = web.endpoint {
+	get = web.endpoint<<asset_path, { readMask: string? }, nil, asset_data>> {
 		base = `{ASSETS}/\{asset_id}`,
 		method = 'GET',
 		auth = READ,
 		ratelimit = { apikey = 120 },
 		path = ASSET,
 		query = { readMask = '' :: string? },
-	} :: endpoint<asset_path, { readMask: string? }, nil, asset_data>,
+	},
 
-	archive = web.endpoint {
+	archive = web.endpoint<<asset_path, nil, nil, asset_data>> {
 		base = `{ASSETS}/\{asset_id}:archive`,
 		method = 'POST',
 		auth = WRITE,
 		ratelimit = { apikey = 100 },
 		path = ASSET,
-	} :: endpoint<asset_path, nil, nil, asset_data>,
+	},
 
-	restore = web.endpoint {
+	restore = web.endpoint<<asset_path, nil, nil, asset_data>> {
 		base = `{ASSETS}/\{asset_id}:restore`,
 		method = 'POST',
 		auth = WRITE,
 		ratelimit = { apikey = 100 },
 		path = ASSET,
-	} :: endpoint<asset_path, nil, nil, asset_data>,
+	},
 
-	rollback = web.endpoint {
+	rollback = web.endpoint<<version_path, nil, nil, asset_version>> {
 		base = `{ASSETS}/\{asset_id}/versions:rollback`,
 		method = 'POST',
 		auth = WRITE,
@@ -152,30 +151,30 @@ return table.freeze {
 			local body = { assetVersion = `assets/{path.asset_id}/versions/{path.version}` }
 			return web.build(self, auth, { path = path, body = body })
 		end,
-	} :: endpoint<version_path, nil, nil, asset_version>,
+	},
 
-	get_version = web.endpoint {
+	get_version = web.endpoint<<version_path, nil, nil, asset_version>> {
 		base = `{ASSETS}/\{asset_id}/versions/\{version}`,
 		method = 'GET',
 		auth = READ,
 		ratelimit = { apikey = 100 },
 		path = VERSION,
-	} :: endpoint<version_path, nil, nil, asset_version>,
+	},
 
-	list_versions = web.endpoint {
+	list_versions = web.endpoint<<asset_path, page_query, nil, asset_versions_page>> {
 		base = `{ASSETS}/\{asset_id}/versions`,
 		method = 'GET',
 		auth = READ,
 		ratelimit = { apikey = 100 },
 		path = ASSET,
 		query = PAGE,
-	} :: endpoint<asset_path, page_query, nil, asset_versions_page>,
+	},
 
-	get_operation = web.endpoint {
+	get_operation = web.endpoint<<operation_path, nil, nil, asset_operation>> {
 		base = 'https://apis.roblox.com/assets/v1/operations/{operation_id}',
 		method = 'GET',
 		auth = READ,
 		ratelimit = { apikey = 300 },
 		path = OPERATION,
-	} :: endpoint<operation_path, nil, nil, asset_operation>,
+	},
 }

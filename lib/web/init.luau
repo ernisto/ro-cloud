@@ -135,10 +135,10 @@ local function with_update_mask(self: any, auth: auth, path: any, body: { [strin
 	return build(self, auth, { path = path, body = body, query = params })
 end
 
--- returns `any` (cast it to `endpoint<...>`): `Query` in the return type breaks inference when both samples are set
-local function endpoint<Path, Query>(def: endpoint_definition<Path, Query>): any
+-- instantiate explicitly: `web.endpoint<<Path, Query, Body, Response>> {}`
+local function endpoint<Path, Query, Body, Response>(def: endpoint_definition<Path, Query>): endpoint<Path, Query, Body, Response>
 	if not def.request then def.request = default_request end
-	return table.freeze(def)
+	return table.freeze(def) :: any
 end
 
 -- module

@@ -1,5 +1,4 @@
 local web = require './web'
-type endpoint<P, Q, B, R> = web.endpoint<P, Q, B, R>
 type json = any
 
 -- defs
@@ -76,7 +75,7 @@ type task_path = typeof(TASK)
 -- module
 return table.freeze {
 	-- `version` is optional, defaults to the latest place version
-	create = web.endpoint {
+	create = web.endpoint<<tasks_path, nil, task_input, pending_task>> {
 		base = `{PLACE}/luau-execution-session-tasks`,
 		method = 'POST',
 		auth = WRITE,
@@ -89,23 +88,23 @@ return table.freeze {
 				else `{PLACE}/luau-execution-session-tasks`
 			return web.build(self, auth, { base = base, path = path, body = task })
 		end,
-	} :: endpoint<tasks_path, nil, task_input, pending_task>,
+	},
 
 	-- `path` is the task path, as returned in `task.path`
-	get = web.endpoint {
+	get = web.endpoint<<task_path, nil, nil, task>> {
 		base = 'https://apis.roblox.com/cloud/v2/{path}',
 		method = 'GET',
 		auth = READ,
 		ratelimit = { apikey = 200 },
 		path = TASK,
-	} :: endpoint<task_path, nil, nil, task>,
+	},
 
-	list_logs = web.endpoint {
+	list_logs = web.endpoint<<task_path, logs_query, nil, logs_page>> {
 		base = 'https://apis.roblox.com/cloud/v2/{path}/logs',
 		method = 'GET',
 		auth = READ,
 		ratelimit = { apikey = 45 },
 		path = TASK,
 		query = LOGS,
-	} :: endpoint<task_path, logs_query, nil, logs_page>,
+	},
 }

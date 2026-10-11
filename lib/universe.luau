@@ -1,5 +1,4 @@
 local web = require './web'
-type endpoint<P, Q, B, R> = web.endpoint<P, Q, B, R>
 
 -- defs
 type date = string
@@ -82,7 +81,7 @@ local PUBLISH: web.auth_spec = { apikey = { scope = { ['universe-messaging-servi
 
 -- module
 return table.freeze {
-	create = web.endpoint {
+	create = web.endpoint<<nil, nil, create_params, create_response>> {
 		base = 'https://apis.roblox.com/universes/v1/universes/create',
 		method = 'POST',
 		auth = COOKIE,
@@ -91,17 +90,17 @@ return table.freeze {
 		request = function(self, auth, _, params)
 			return web.build(self, auth, { query = { groupId = params.groupId }, body = params })
 		end,
-	} :: endpoint<nil, nil, create_params, create_response>,
+	},
 
-	get = web.endpoint {
+	get = web.endpoint<<universe_path, nil, nil, universe_data>> {
 		base = 'https://apis.roblox.com/cloud/v2/universes/{universe_id}',
 		method = 'GET',
 		auth = NONE,
 		ratelimit = { apikey = 100 },
 		path = UNIVERSE,
-	} :: endpoint<universe_path, nil, nil, universe_data>,
+	},
 
-	update = web.endpoint {
+	update = web.endpoint<<universe_path, nil, universe_patch, universe_data>> {
 		base = 'https://apis.roblox.com/cloud/v2/universes/{universe_id}',
 		method = 'PATCH',
 		auth = WRITE,
@@ -109,23 +108,23 @@ return table.freeze {
 		path = UNIVERSE,
 		content_type = 'application/json',
 		request = web.with_update_mask,
-	} :: endpoint<universe_path, nil, universe_patch, universe_data>,
+	},
 
-	publish_message = web.endpoint {
+	publish_message = web.endpoint<<universe_path, nil, message, nil>> {
 		base = 'https://apis.roblox.com/cloud/v2/universes/{universe_id}:publishMessage',
 		method = 'POST',
 		auth = PUBLISH,
 		ratelimit = { apikey = 5000 },
 		path = UNIVERSE,
 		content_type = 'application/json',
-	} :: endpoint<universe_path, nil, message, nil>,
+	},
 
-	shutdown = web.endpoint {
+	shutdown = web.endpoint<<universe_path, nil, nil, nil>> {
 		base = 'https://apis.roblox.com/cloud/v2/universes/{universe_id}:restartServers',
 		method = 'POST',
 		auth = WRITE,
 		ratelimit = { apikey = 30 },
 		path = UNIVERSE,
 		content_type = 'application/json',
-	} :: endpoint<universe_path, nil, nil, nil>,
+	},
 }

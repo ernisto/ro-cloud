@@ -1,5 +1,4 @@
 local web = require './web'
-type endpoint<P, Q, B, R> = web.endpoint<P, Q, B, R>
 
 -- defs
 export type secret = {
@@ -32,46 +31,46 @@ local SECRETS = 'https://apis.roblox.com/cloud/v2/universes/{universe_id}/secret
 
 -- module
 return table.freeze {
-	get_public_key = web.endpoint {
+	get_public_key = web.endpoint<<universe_path, nil, nil, public_key>> {
 		base = `{SECRETS}/public-key`,
 		method = 'GET',
 		auth = READ,
 		ratelimit = RATELIMIT,
 		path = UNIVERSE,
-	} :: endpoint<universe_path, nil, nil, public_key>,
+	},
 
-	list = web.endpoint {
+	list = web.endpoint<<universe_path, page_query, nil, secrets_page>> {
 		base = SECRETS,
 		method = 'GET',
 		auth = READ,
 		ratelimit = RATELIMIT,
 		path = UNIVERSE,
 		query = PAGE,
-	} :: endpoint<universe_path, page_query, nil, secrets_page>,
+	},
 
-	create = web.endpoint {
+	create = web.endpoint<<universe_path, nil, secret_create, secret>> {
 		base = SECRETS,
 		method = 'POST',
 		auth = WRITE,
 		ratelimit = RATELIMIT,
 		path = UNIVERSE,
 		content_type = 'application/json',
-	} :: endpoint<universe_path, nil, secret_create, secret>,
+	},
 
-	delete = web.endpoint {
+	delete = web.endpoint<<secret_path, nil, nil, nil>> {
 		base = `{SECRETS}/\{secret_id}`,
 		method = 'DELETE',
 		auth = WRITE,
 		ratelimit = RATELIMIT,
 		path = SECRET,
-	} :: endpoint<secret_path, nil, nil, nil>,
+	},
 
-	update = web.endpoint {
+	update = web.endpoint<<secret_path, nil, secret_patch, secret>> {
 		base = `{SECRETS}/\{secret_id}`,
 		method = 'PATCH',
 		auth = WRITE,
 		ratelimit = RATELIMIT,
 		path = SECRET,
 		content_type = 'application/json',
-	} :: endpoint<secret_path, nil, secret_patch, secret>,
+	},
 }

@@ -1,5 +1,4 @@
 local web = require './web'
-type endpoint<P, Q, B, R> = web.endpoint<P, Q, B, R>
 
 -- defs
 export type queue_item = {
@@ -59,51 +58,51 @@ export type ordered_page_query = typeof(ORDERED_PAGE)
 
 -- module
 return table.freeze {
-	enqueue = web.endpoint {
+	enqueue = web.endpoint<<queue_path, nil, queue_item, queue_item>> {
 		base = QUEUE,
 		method = 'POST',
 		auth = QUEUE_ADD,
 		ratelimit = RATELIMIT,
 		path = QUEUE_PATH,
 		content_type = 'application/json',
-	} :: endpoint<queue_path, nil, queue_item, queue_item>,
+	},
 
-	read_queue = web.endpoint {
+	read_queue = web.endpoint<<queue_path, read_query, nil, queue_read>> {
 		base = `{QUEUE}:read`,
 		method = 'GET',
 		auth = QUEUE_DEQUEUE,
 		ratelimit = RATELIMIT,
 		path = QUEUE_PATH,
 		query = READ,
-	} :: endpoint<queue_path, read_query, nil, queue_read>,
+	},
 
-	discard_queue = web.endpoint {
+	discard_queue = web.endpoint<<queue_path, nil, { readId: string }, nil>> {
 		base = `{QUEUE}:discard`,
 		method = 'POST',
 		auth = QUEUE_DISCARD,
 		ratelimit = RATELIMIT,
 		path = QUEUE_PATH,
 		content_type = 'application/json',
-	} :: endpoint<queue_path, nil, { readId: string }, nil>,
+	},
 
-	list_sorted_map = web.endpoint {
+	list_sorted_map = web.endpoint<<map_path, ordered_page_query, nil, sorted_map_page>> {
 		base = MAP,
 		method = 'GET',
 		auth = MAP_READ,
 		ratelimit = RATELIMIT,
 		path = MAP_PATH,
 		query = ORDERED_PAGE,
-	} :: endpoint<map_path, ordered_page_query, nil, sorted_map_page>,
+	},
 
-	get_sorted_map_item = web.endpoint {
+	get_sorted_map_item = web.endpoint<<item_path, nil, nil, sorted_map_item>> {
 		base = `{MAP}/\{item_id}`,
 		method = 'GET',
 		auth = MAP_READ,
 		ratelimit = RATELIMIT,
 		path = ITEM_PATH,
-	} :: endpoint<item_path, nil, nil, sorted_map_item>,
+	},
 
-	set_sorted_map_item = web.endpoint {
+	set_sorted_map_item = web.endpoint<<map_path, { id: string? }, sorted_map_item, sorted_map_item>> {
 		base = MAP,
 		method = 'POST',
 		auth = MAP_WRITE,
@@ -111,9 +110,9 @@ return table.freeze {
 		path = MAP_PATH,
 		query = { id = '' :: string? },
 		content_type = 'application/json',
-	} :: endpoint<map_path, { id: string? }, sorted_map_item, sorted_map_item>,
+	},
 
-	update_sorted_map_item = web.endpoint {
+	update_sorted_map_item = web.endpoint<<item_path, { allowMissing: boolean? }, sorted_map_item, sorted_map_item>> {
 		base = `{MAP}/\{item_id}`,
 		method = 'PATCH',
 		auth = MAP_WRITE,
@@ -121,21 +120,21 @@ return table.freeze {
 		path = ITEM_PATH,
 		query = { allowMissing = false :: boolean? },
 		content_type = 'application/json',
-	} :: endpoint<item_path, { allowMissing: boolean? }, sorted_map_item, sorted_map_item>,
+	},
 
-	delete_sorted_map_item = web.endpoint {
+	delete_sorted_map_item = web.endpoint<<item_path, nil, nil, nil>> {
 		base = `{MAP}/\{item_id}`,
 		method = 'DELETE',
 		auth = MAP_WRITE,
 		ratelimit = RATELIMIT,
 		path = ITEM_PATH,
-	} :: endpoint<item_path, nil, nil, nil>,
+	},
 
-	flush = web.endpoint {
+	flush = web.endpoint<<{ universe_id: number }, nil, nil, { [string]: any }>> {
 		base = 'https://apis.roblox.com/cloud/v2/universes/{universe_id}/memory-store:flush',
 		method = 'POST',
 		auth = FLUSH,
 		ratelimit = RATELIMIT,
 		path = { universe_id = 0 },
-	} :: endpoint<{ universe_id: number }, nil, nil, { [string]: any }>,
+	},
 }

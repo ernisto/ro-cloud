@@ -1,5 +1,4 @@
 local web = require './web'
-type endpoint<P, Q, B, R> = web.endpoint<P, Q, B, R>
 type json = { [string]: any }
 
 -- defs
@@ -44,16 +43,16 @@ local INSTANCE_WRITE: web.auth_spec = { apikey = { scope = { ['universe.place.in
 
 -- module
 return table.freeze {
-	create = web.endpoint {
+	create = web.endpoint<<universe_path, nil, create_params, create_response>> {
 		base = 'https://apis.roblox.com/universes/v1/user/universes/{universe_id}/places',
 		method = 'POST',
 		auth = COOKIE,
 		path = UNIVERSE,
 		content_type = 'application/json',
-	} :: endpoint<universe_path, nil, create_params, create_response>,
+	},
 
 	-- place file as `.rbxl` / `.rbxlx` bytes; `versionType = 'Published'` publishes instead of only saving
-	upload = web.endpoint {
+	upload = web.endpoint<<place_path, upload_query, buffer, { versionNumber: number }>> {
 		base = 'https://apis.roblox.com/universes/v1/{universe_id}/places/{place_id}/versions',
 		method = 'POST',
 		auth = PLACES_WRITE,
@@ -61,17 +60,17 @@ return table.freeze {
 		path = PLACE,
 		query = UPLOAD,
 		content_type = 'application/octet-stream',
-	} :: endpoint<place_path, upload_query, buffer, { versionNumber: number }>,
+	},
 
-	get_info = web.endpoint {
+	get_info = web.endpoint<<place_path, nil, nil, info>> {
 		base = 'https://apis.roblox.com/cloud/v2/universes/{universe_id}/places/{place_id}',
 		method = 'GET',
 		auth = NONE,
 		ratelimit = { apikey = 100 },
 		path = PLACE,
-	} :: endpoint<place_path, nil, nil, info>,
+	},
 
-	update_info = web.endpoint {
+	update_info = web.endpoint<<place_path, nil, info_patch, info>> {
 		base = 'https://apis.roblox.com/cloud/v2/universes/{universe_id}/places/{place_id}',
 		method = 'PATCH',
 		auth = WRITE,
@@ -79,17 +78,17 @@ return table.freeze {
 		path = PLACE,
 		content_type = 'application/json',
 		request = web.with_update_mask,
-	} :: endpoint<place_path, nil, info_patch, info>,
+	},
 
-	get_instance = web.endpoint {
+	get_instance = web.endpoint<<instance_path, nil, nil, json>> {
 		base = INSTANCE_URL,
 		method = 'GET',
 		auth = INSTANCE_READ,
 		ratelimit = { apikey = 45 },
 		path = INSTANCE,
-	} :: endpoint<instance_path, nil, nil, json>,
+	},
 
-	update_instance = web.endpoint {
+	update_instance = web.endpoint<<instance_path, nil, instance, json>> {
 		base = INSTANCE_URL,
 		method = 'PATCH',
 		auth = INSTANCE_WRITE,
@@ -97,14 +96,14 @@ return table.freeze {
 		path = INSTANCE,
 		content_type = 'application/json',
 		request = web.with_update_mask,
-	} :: endpoint<instance_path, nil, instance, json>,
+	},
 
-	list_instance_children = web.endpoint {
+	list_instance_children = web.endpoint<<instance_path, page_query, nil, json>> {
 		base = `{INSTANCE_URL}:listChildren`,
 		method = 'GET',
 		auth = INSTANCE_READ,
 		ratelimit = { apikey = 45 },
 		path = INSTANCE,
 		query = PAGE,
-	} :: endpoint<instance_path, page_query, nil, json>,
+	},
 }

@@ -1,6 +1,5 @@
 local place_configuration = require './place_configuration'
 local web = require './web'
-type endpoint<P, Q, B, R> = web.endpoint<P, Q, B, R>
 
 -- defs
 type date = string
@@ -43,39 +42,36 @@ export type place_list_query = typeof(PLACE_LIST)
 
 -- module
 return table.freeze {
-	get_user_universes = web.endpoint {
+	get_user_universes = web.endpoint<<nil, page_query, nil, page<dev_universe>>> {
 		base = 'https://develop.roblox.com/v1/user/universes',
 		method = 'GET',
 		auth = COOKIE,
 		path = nil,
 		query = PAGE,
-	} :: endpoint<nil, page_query, nil, page<dev_universe>>,
+	},
 
-	get_group_universes = web.endpoint {
+	get_group_universes = web.endpoint<<{ group_id: number }, page_query, nil, page<dev_universe>>> {
 		base = 'https://develop.roblox.com/v1/groups/{group_id}/universes',
 		method = 'GET',
 		auth = COOKIE,
 		path = { group_id = 0 },
 		query = PAGE,
-	} :: endpoint<{ group_id: number }, page_query, nil, page<dev_universe>>,
+	},
 
-	get_groups = web.endpoint {
+	get_groups = web.endpoint<<nil, nil, nil, { data: { dev_group } }>> {
 		base = 'https://develop.roblox.com/v1/user/groups/canmanagegamesoritems',
 		method = 'GET',
 		auth = COOKIE,
 		path = nil,
-	} :: endpoint<nil, nil, nil, { data: { dev_group } }>,
+	},
 
-	list_universe_places = web.endpoint {
+	list_universe_places = web.endpoint<<{ universe_id: number }, place_list_query, nil, place_page<
+		place_configuration.place_data
+	>>> {
 		base = 'https://develop.roblox.com/v1/universes/{universe_id}/places',
 		method = 'GET',
 		auth = COOKIE,
 		path = { universe_id = 0 },
 		query = PLACE_LIST,
-	} :: endpoint<
-		{ universe_id: number },
-		place_list_query,
-		nil,
-		place_page<place_configuration.place_data>
-	>,
+	},
 }

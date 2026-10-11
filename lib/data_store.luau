@@ -1,5 +1,4 @@
 local web = require './web'
-type endpoint<P, Q, B, R> = web.endpoint<P, Q, B, R>
 
 -- defs
 export type data_store = { path: string?, createTime: string?, expireTime: string?, state: string?, id: string? }
@@ -98,42 +97,42 @@ local entry_request = store_request '/entries/{entry_id}'
 
 -- module
 return table.freeze {
-	snapshot = web.endpoint {
+	snapshot = web.endpoint<<universe_path, nil, nil, snapshot_result>> {
 		base = 'https://apis.roblox.com/cloud/v2/universes/{universe_id}/data-stores:snapshot',
 		method = 'POST',
 		auth = CONTROL_SNAPSHOT,
 		ratelimit = { apikey = 60 },
 		path = UNIVERSE,
 		content_type = 'application/json',
-	} :: endpoint<universe_path, nil, nil, snapshot_result>,
+	},
 
-	list_stores = web.endpoint {
+	list_stores = web.endpoint<<universe_path, page_query, nil, stores_page>> {
 		base = 'https://apis.roblox.com/cloud/v2/universes/{universe_id}/data-stores',
 		method = 'GET',
 		auth = CONTROL_LIST,
 		ratelimit = RATELIMIT,
 		path = UNIVERSE,
 		query = PAGE,
-	} :: endpoint<universe_path, page_query, nil, stores_page>,
+	},
 
-	delete_store = web.endpoint {
+	delete_store = web.endpoint<<store_path, nil, nil, data_store>> {
 		base = STORE,
 		method = 'DELETE',
 		auth = CONTROL_DELETE,
 		ratelimit = RATELIMIT,
 		path = STORE_PATH,
-	} :: endpoint<store_path, nil, nil, data_store>,
+	},
 
-	undelete_store = web.endpoint {
+	undelete_store = web.endpoint<<store_path, nil, nil, data_store>> {
 		base = `{STORE}:undelete`,
 		method = 'POST',
 		auth = CONTROL_DELETE,
 		ratelimit = RATELIMIT,
 		path = STORE_PATH,
 		content_type = 'application/json',
-	} :: endpoint<store_path, nil, nil, data_store>,
+	},
 
-	list_entries = web.endpoint {
+	list_entries = web.endpoint<<scope_path, page_query, nil, entries_page>> {
 		base = `{STORE}/entries`,
 		method = 'GET',
 		auth = OBJECTS_LIST,
@@ -141,9 +140,9 @@ return table.freeze {
 		path = SCOPE_PATH,
 		query = PAGE,
 		request = entries_request,
-	} :: endpoint<scope_path, page_query, nil, entries_page>,
+	},
 
-	create_entry = web.endpoint {
+	create_entry = web.endpoint<<scope_path, { id: string? }, entry, entry>> {
 		base = `{STORE}/entries`,
 		method = 'POST',
 		auth = OBJECTS_CREATE,
@@ -152,18 +151,18 @@ return table.freeze {
 		query = { id = '' :: string? },
 		content_type = 'application/json',
 		request = entries_request,
-	} :: endpoint<scope_path, { id: string? }, entry, entry>,
+	},
 
-	get_entry = web.endpoint {
+	get_entry = web.endpoint<<entry_path, nil, nil, entry>> {
 		base = `{STORE}/entries/\{entry_id}`,
 		method = 'GET',
 		auth = OBJECTS_READ,
 		ratelimit = RATELIMIT,
 		path = ENTRY_PATH,
 		request = entry_request,
-	} :: endpoint<entry_path, nil, nil, entry>,
+	},
 
-	update_entry = web.endpoint {
+	update_entry = web.endpoint<<entry_path, allow_missing_query, entry, entry>> {
 		base = `{STORE}/entries/\{entry_id}`,
 		method = 'PATCH',
 		auth = OBJECTS_UPDATE,
@@ -172,18 +171,18 @@ return table.freeze {
 		query = ALLOW_MISSING,
 		content_type = 'application/json',
 		request = entry_request,
-	} :: endpoint<entry_path, allow_missing_query, entry, entry>,
+	},
 
-	delete_entry = web.endpoint {
+	delete_entry = web.endpoint<<entry_path, nil, nil, nil>> {
 		base = `{STORE}/entries/\{entry_id}`,
 		method = 'DELETE',
 		auth = OBJECTS_DELETE,
 		ratelimit = RATELIMIT,
 		path = ENTRY_PATH,
 		request = entry_request,
-	} :: endpoint<entry_path, nil, nil, nil>,
+	},
 
-	increment_entry = web.endpoint {
+	increment_entry = web.endpoint<<entry_path, nil, increment, entry>> {
 		base = `{STORE}/entries/\{entry_id}:increment`,
 		method = 'POST',
 		auth = OBJECTS_INCREMENT,
@@ -191,9 +190,9 @@ return table.freeze {
 		path = ENTRY_PATH,
 		content_type = 'application/json',
 		request = store_request '/entries/{entry_id}:increment',
-	} :: endpoint<entry_path, nil, increment, entry>,
+	},
 
-	list_entry_revisions = web.endpoint {
+	list_entry_revisions = web.endpoint<<entry_path, page_query, nil, entry_revisions_page>> {
 		base = `{STORE}/entries/\{entry_id}:listRevisions`,
 		method = 'GET',
 		auth = VERSIONS_LIST,
@@ -201,18 +200,18 @@ return table.freeze {
 		path = ENTRY_PATH,
 		query = PAGE,
 		request = store_request '/entries/{entry_id}:listRevisions',
-	} :: endpoint<entry_path, page_query, nil, entry_revisions_page>,
+	},
 
-	list_ordered_entries = web.endpoint {
+	list_ordered_entries = web.endpoint<<ordered_path, ordered_page_query, nil, ordered_entries_page>> {
 		base = `{ORDERED}/entries`,
 		method = 'GET',
 		auth = ORDERED_READ,
 		ratelimit = RATELIMIT,
 		path = ORDERED_PATH,
 		query = ORDERED_PAGE,
-	} :: endpoint<ordered_path, ordered_page_query, nil, ordered_entries_page>,
+	},
 
-	create_ordered_entry = web.endpoint {
+	create_ordered_entry = web.endpoint<<ordered_path, { id: string }, { value: number }, ordered_entry>> {
 		base = `{ORDERED}/entries`,
 		method = 'POST',
 		auth = ORDERED_WRITE,
@@ -220,17 +219,17 @@ return table.freeze {
 		path = ORDERED_PATH,
 		query = { id = '' },
 		content_type = 'application/json',
-	} :: endpoint<ordered_path, { id: string }, { value: number }, ordered_entry>,
+	},
 
-	get_ordered_entry = web.endpoint {
+	get_ordered_entry = web.endpoint<<ordered_entry_path, nil, nil, ordered_entry>> {
 		base = `{ORDERED}/entries/\{entry_id}`,
 		method = 'GET',
 		auth = ORDERED_READ,
 		ratelimit = RATELIMIT,
 		path = ORDERED_ENTRY_PATH,
-	} :: endpoint<ordered_entry_path, nil, nil, ordered_entry>,
+	},
 
-	update_ordered_entry = web.endpoint {
+	update_ordered_entry = web.endpoint<<ordered_entry_path, allow_missing_query, { value: number }, ordered_entry>> {
 		base = `{ORDERED}/entries/\{entry_id}`,
 		method = 'PATCH',
 		auth = ORDERED_WRITE,
@@ -238,22 +237,22 @@ return table.freeze {
 		path = ORDERED_ENTRY_PATH,
 		query = ALLOW_MISSING,
 		content_type = 'application/json',
-	} :: endpoint<ordered_entry_path, allow_missing_query, { value: number }, ordered_entry>,
+	},
 
-	delete_ordered_entry = web.endpoint {
+	delete_ordered_entry = web.endpoint<<ordered_entry_path, nil, nil, nil>> {
 		base = `{ORDERED}/entries/\{entry_id}`,
 		method = 'DELETE',
 		auth = ORDERED_WRITE,
 		ratelimit = RATELIMIT,
 		path = ORDERED_ENTRY_PATH,
-	} :: endpoint<ordered_entry_path, nil, nil, nil>,
+	},
 
-	increment_ordered_entry = web.endpoint {
+	increment_ordered_entry = web.endpoint<<ordered_entry_path, nil, { amount: number }, ordered_entry>> {
 		base = `{ORDERED}/entries/\{entry_id}:increment`,
 		method = 'POST',
 		auth = ORDERED_WRITE,
 		ratelimit = RATELIMIT,
 		path = ORDERED_ENTRY_PATH,
 		content_type = 'application/json',
-	} :: endpoint<ordered_entry_path, nil, { amount: number }, ordered_entry>,
+	},
 }

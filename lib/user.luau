@@ -1,5 +1,4 @@
 local web = require './web'
-type endpoint<P, Q, B, R> = web.endpoint<P, Q, B, R>
 
 -- defs
 type social_network_profiles = {
@@ -68,47 +67,47 @@ export type page_query = typeof(PAGE)
 
 -- module
 return table.freeze {
-	get = web.endpoint {
+	get = web.endpoint<<user_path, nil, nil, user_data>> {
 		base = 'https://apis.roblox.com/cloud/v2/users/{user_id}',
 		method = 'GET',
 		-- both scopes are optional, each one unlocks more fields
 		auth = READ,
 		ratelimit = { apikey = 1000 },
 		path = USER,
-	} :: endpoint<user_path, nil, nil, user_data>,
+	},
 
 	-- the user owning the cookie
-	get_authenticated = web.endpoint {
+	get_authenticated = web.endpoint<<nil, nil, nil, authenticated_user>> {
 		base = 'https://users.roblox.com/v1/users/authenticated',
 		method = 'GET',
 		auth = COOKIE,
 		path = nil,
-	} :: endpoint<nil, nil, nil, authenticated_user>,
+	},
 
-	list_inventory = web.endpoint {
+	list_inventory = web.endpoint<<user_path, page_query, nil, inventory_page>> {
 		base = 'https://apis.roblox.com/cloud/v2/users/{user_id}/inventory-items',
 		method = 'GET',
 		auth = INVENTORY_READ,
 		ratelimit = { apikey = 100 },
 		path = USER,
 		query = PAGE,
-	} :: endpoint<user_path, page_query, nil, inventory_page>,
+	},
 
-	send_notification = web.endpoint {
+	send_notification = web.endpoint<<user_path, nil, notification, notification>> {
 		base = 'https://apis.roblox.com/cloud/v2/users/{user_id}/notifications',
 		method = 'POST',
 		auth = NOTIFICATION_WRITE,
 		ratelimit = { apikey = 240_000 },
 		path = USER,
 		content_type = 'application/json',
-	} :: endpoint<user_path, nil, notification, notification>,
+	},
 
-	get_subscription = web.endpoint {
+	get_subscription = web.endpoint<<subscription_path, { view: string? }, nil, subscription>> {
 		base = 'https://apis.roblox.com/cloud/v2/universes/{universe_id}/subscription-products/{subscription_product_id}/subscriptions/{subscription_id}',
 		method = 'GET',
 		auth = SUBSCRIPTION_READ,
 		ratelimit = { apikey = 500 },
 		path = SUBSCRIPTION,
 		query = { view = '' :: string? },
-	} :: endpoint<subscription_path, { view: string? }, nil, subscription>,
+	},
 }

@@ -1,5 +1,4 @@
 local web = require './web'
-type endpoint<P, Q, B, R> = web.endpoint<P, Q, B, R>
 
 -- defs
 export type upload_response = { targetId: number }
@@ -27,16 +26,16 @@ end
 
 -- module
 return table.freeze {
-	upload_icon = web.endpoint {
+	upload_icon = web.endpoint<<universe_path, nil, buffer, upload_response>> {
 		base = 'https://publish.roblox.com/v1/games/{universe_id}/icon',
 		method = 'POST',
 		auth = COOKIE,
 		path = UNIVERSE,
 		content_type = 'multipart/form-data',
 		request = image_request,
-	} :: endpoint<universe_path, nil, buffer, upload_response>,
+	},
 
-	remove_icon = web.endpoint {
+	remove_icon = web.endpoint<<nil, nil, remove_icon_body, nil>> {
 		base = 'https://www.roblox.com/places/icons/remove-icon',
 		method = 'POST',
 		auth = COOKIE,
@@ -49,36 +48,36 @@ return table.freeze {
 				{ body = buffer.fromstring(`placeId={body.placeId}&placeIconId={body.placeIconId}`) }
 			)
 		end,
-	} :: endpoint<nil, nil, remove_icon_body, nil>,
+	},
 
-	upload_thumbnail = web.endpoint {
+	upload_thumbnail = web.endpoint<<universe_path, nil, buffer, upload_response>> {
 		base = 'https://publish.roblox.com/v1/games/{universe_id}/thumbnail/image',
 		method = 'POST',
 		auth = COOKIE,
 		path = UNIVERSE,
 		content_type = 'multipart/form-data',
 		request = image_request,
-	} :: endpoint<universe_path, nil, buffer, upload_response>,
+	},
 
-	list_thumbnails = web.endpoint {
+	list_thumbnails = web.endpoint<<universe_path, nil, nil, { data: { media_item } }>> {
 		base = 'https://games.roblox.com/v1/games/{universe_id}/media',
 		method = 'GET',
 		auth = COOKIE,
 		path = UNIVERSE,
-	} :: endpoint<universe_path, nil, nil, { data: { media_item } }>,
+	},
 
-	set_thumbnail_order = web.endpoint {
+	set_thumbnail_order = web.endpoint<<universe_path, nil, { thumbnailIds: { number } }, nil>> {
 		base = 'https://develop.roblox.com/v1/universes/{universe_id}/thumbnails/order',
 		method = 'POST',
 		auth = COOKIE,
 		path = UNIVERSE,
 		content_type = 'application/json',
-	} :: endpoint<universe_path, nil, { thumbnailIds: { number } }, nil>,
+	},
 
-	delete_thumbnail = web.endpoint {
+	delete_thumbnail = web.endpoint<<thumbnail_path, nil, nil, nil>> {
 		base = 'https://develop.roblox.com/v1/universes/{universe_id}/thumbnails/{thumbnail_id}',
 		method = 'DELETE',
 		auth = COOKIE,
 		path = THUMBNAIL,
-	} :: endpoint<thumbnail_path, nil, nil, nil>,
+	},
 }

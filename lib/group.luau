@@ -1,5 +1,4 @@
 local web = require './web'
-type endpoint<P, Q, B, R> = web.endpoint<P, Q, B, R>
 
 -- defs
 type role_permissions = {
@@ -75,80 +74,80 @@ export type page_query = typeof(PAGE)
 
 -- module
 return table.freeze {
-	get = web.endpoint {
+	get = web.endpoint<<group_path, nil, nil, group>> {
 		base = GROUP,
 		method = 'GET',
 		auth = NONE,
 		ratelimit = { apikey = 150 },
 		path = GROUP_PATH,
-	} :: endpoint<group_path, nil, nil, group>,
+	},
 
-	get_shout = web.endpoint {
+	get_shout = web.endpoint<<group_path, nil, nil, shout>> {
 		base = `{GROUP}/shout`,
 		method = 'GET',
 		auth = READ,
 		path = GROUP_PATH,
-	} :: endpoint<group_path, nil, nil, shout>,
+	},
 
-	list_roles = web.endpoint {
+	list_roles = web.endpoint<<group_path, page_query, nil, roles_page>> {
 		base = `{GROUP}/roles`,
 		method = 'GET',
 		auth = READ,
 		ratelimit = { apikey = 300 },
 		path = GROUP_PATH,
 		query = PAGE,
-	} :: endpoint<group_path, page_query, nil, roles_page>,
+	},
 
-	get_role = web.endpoint {
+	get_role = web.endpoint<<{ group_id: number, role_id: string }, nil, nil, role>> {
 		base = `{GROUP}/roles/\{role_id}`,
 		method = 'GET',
 		auth = READ,
 		ratelimit = { apikey = 300 },
 		path = { group_id = 0, role_id = '' },
-	} :: endpoint<{ group_id: number, role_id: string }, nil, nil, role>,
+	},
 
-	list_memberships = web.endpoint {
+	list_memberships = web.endpoint<<group_path, page_query, nil, memberships_page>> {
 		base = `{GROUP}/memberships`,
 		method = 'GET',
 		auth = NONE,
 		ratelimit = { apikey = 300 },
 		path = GROUP_PATH,
 		query = PAGE,
-	} :: endpoint<group_path, page_query, nil, memberships_page>,
+	},
 
-	update_membership = web.endpoint {
+	update_membership = web.endpoint<<{ group_id: number, membership_id: string }, nil, membership, membership>> {
 		base = `{GROUP}/memberships/\{membership_id}`,
 		method = 'PATCH',
 		auth = WRITE,
 		ratelimit = { apikey = 300 },
 		path = { group_id = 0, membership_id = '' },
 		content_type = 'application/json',
-	} :: endpoint<{ group_id: number, membership_id: string }, nil, membership, membership>,
+	},
 
-	list_join_requests = web.endpoint {
+	list_join_requests = web.endpoint<<group_path, page_query, nil, join_requests_page>> {
 		base = `{GROUP}/join-requests`,
 		method = 'GET',
 		auth = READ,
 		ratelimit = { apikey = 300 },
 		path = GROUP_PATH,
 		query = PAGE,
-	} :: endpoint<group_path, page_query, nil, join_requests_page>,
+	},
 
-	accept_join_request = web.endpoint {
+	accept_join_request = web.endpoint<<join_request_path, nil, nil, nil>> {
 		base = `{GROUP}/join-requests/\{join_request_id}:accept`,
 		method = 'POST',
 		auth = WRITE,
 		ratelimit = { apikey = 100 },
 		path = JOIN_REQUEST,
 		content_type = 'application/json',
-	} :: endpoint<join_request_path, nil, nil, nil>,
+	},
 
-	decline_join_request = web.endpoint {
+	decline_join_request = web.endpoint<<join_request_path, nil, nil, nil>> {
 		base = `{GROUP}/join-requests/\{join_request_id}:decline`,
 		method = 'POST',
 		auth = WRITE,
 		ratelimit = { apikey = 100 },
 		path = JOIN_REQUEST,
 		content_type = 'application/json',
-	} :: endpoint<join_request_path, nil, nil, nil>,
+	},
 }

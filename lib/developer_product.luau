@@ -1,5 +1,4 @@
 local web = require './web'
-type endpoint<P, Q, B, R> = web.endpoint<P, Q, B, R>
 
 -- defs
 export type product_patch = {
@@ -54,38 +53,38 @@ export type page_query = typeof(PAGE)
 
 -- module
 return table.freeze {
-	create = web.endpoint {
+	create = web.endpoint<<universe_path, nil, product_create_data, product_data>> {
 		base = BASE,
 		method = 'POST',
 		auth = WRITE,
 		ratelimit = { apikey = 180 },
 		path = UNIVERSE,
 		content_type = 'multipart/form-data',
-	} :: endpoint<universe_path, nil, product_create_data, product_data>,
+	},
 
-	update = web.endpoint {
+	update = web.endpoint<<product_path, nil, product_patch, nil>> {
 		base = `{BASE}/\{product_id}`,
 		method = 'PATCH',
 		auth = WRITE,
 		ratelimit = { apikey = 180 },
 		path = ITEM,
 		content_type = 'multipart/form-data',
-	} :: endpoint<product_path, nil, product_patch, nil>,
+	},
 
-	get = web.endpoint {
+	get = web.endpoint<<product_path, nil, nil, product_data>> {
 		base = `{BASE}/\{product_id}/creator`,
 		method = 'GET',
 		auth = READ,
 		ratelimit = { apikey = 600 },
 		path = ITEM,
-	} :: endpoint<product_path, nil, nil, product_data>,
+	},
 
-	list = web.endpoint {
+	list = web.endpoint<<universe_path, page_query, nil, product_page>> {
 		base = `{BASE}/creator`,
 		method = 'GET',
 		auth = READ,
 		ratelimit = { apikey = 600 },
 		path = UNIVERSE,
 		query = PAGE,
-	} :: endpoint<universe_path, page_query, nil, product_page>,
+	},
 }

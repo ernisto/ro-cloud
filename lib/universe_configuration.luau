@@ -1,5 +1,4 @@
 local web = require './web'
-type endpoint<P, Q, B, R> = web.endpoint<P, Q, B, R>
 
 -- defs
 type avatar_scale_patch = {
@@ -107,18 +106,18 @@ type universe_path = typeof(UNIVERSE)
 
 -- module
 return table.freeze {
-	get = web.endpoint {
+	get = web.endpoint<<universe_path, nil, nil, settings_data_v1>> {
 		base = 'https://develop.roblox.com/v1/universes/{universe_id}/configuration',
 		method = 'GET',
 		auth = COOKIE,
 		path = UNIVERSE,
-	} :: endpoint<universe_path, nil, nil, settings_data_v1>,
+	},
 
-	update = web.endpoint {
+	update = web.endpoint<<universe_path, nil, settings_patch_v2, settings_data_v2>> {
 		base = 'https://develop.roblox.com/v2/universes/{universe_id}/configuration',
 		method = 'PATCH',
 		auth = COOKIE,
 		path = UNIVERSE,
 		content_type = 'application/json',
-	} :: endpoint<universe_path, nil, settings_patch_v2, settings_data_v2>,
+	},
 }

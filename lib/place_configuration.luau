@@ -1,5 +1,4 @@
 local web = require './web'
-type endpoint<P, Q, B, R> = web.endpoint<P, Q, B, R>
 
 -- defs
 type date = string
@@ -40,18 +39,18 @@ type place_path = typeof(PLACE)
 
 -- module
 return table.freeze {
-	get = web.endpoint {
+	get = web.endpoint<<place_path, nil, nil, place_data>> {
 		base = 'https://develop.roblox.com/v2/places/{place_id}',
 		method = 'GET',
 		auth = COOKIE,
 		path = PLACE,
-	} :: endpoint<place_path, nil, nil, place_data>,
+	},
 
-	update = web.endpoint {
+	update = web.endpoint<<place_path, nil, place_patch, place_data>> {
 		base = 'https://develop.roblox.com/v2/places/{place_id}',
 		method = 'PATCH',
 		auth = COOKIE,
 		path = PLACE,
 		content_type = 'application/json',
-	} :: endpoint<place_path, nil, place_patch, place_data>,
+	},
 }
