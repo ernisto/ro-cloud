@@ -1,7 +1,7 @@
 local web = require './web'
 
 -- defs
-export type secret = {
+export type secret_data = {
 	id: string?,
 	secret: string?,
 	key_id: string?,
@@ -10,11 +10,11 @@ export type secret = {
 	update_time: string?,
 }
 
-export type secret_create = { id: string, secret: string, key_id: string, domain: string }
+export type secret_creation = { id: string, secret: string, key_id: string, domain: string }
 export type secret_patch = { secret: string? }
 export type public_key = { key_id: string?, public_key: string? }
 
-export type secrets_page = { nextPageCursor: 'n' | string, previousPageCursor: 'p' | string, secrets: { secret } }
+export type secrets_page = { nextPageCursor: 'n' | string, previousPageCursor: 'p' | string, secrets: { secret_data } }
 
 local UNIVERSE = table.freeze { universe_id = 0 }
 local SECRET = table.freeze { universe_id = 0, secret_id = '' }
@@ -48,7 +48,7 @@ return table.freeze {
 		query = PAGE,
 	},
 
-	create = web.endpoint<<universe_path, nil, secret_create, secret>> {
+	create = web.endpoint<<universe_path, nil, secret_creation, secret_data>> {
 		base = SECRETS,
 		method = 'POST',
 		auth = WRITE,
@@ -65,7 +65,7 @@ return table.freeze {
 		path = SECRET,
 	},
 
-	update = web.endpoint<<secret_path, nil, secret_patch, secret>> {
+	update = web.endpoint<<secret_path, nil, secret_patch, secret_data>> {
 		base = `{SECRETS}/\{secret_id}`,
 		method = 'PATCH',
 		auth = WRITE,

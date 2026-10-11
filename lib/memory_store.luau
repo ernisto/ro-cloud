@@ -1,7 +1,7 @@
 local web = require './web'
 
 -- defs
-export type queue_item = {
+export type queue_item_data = {
 	path: string?,
 	data: any,
 	priority: number?,
@@ -9,7 +9,7 @@ export type queue_item = {
 	expireTime: string?,
 	id: string?,
 }
-export type sorted_map_item = {
+export type sorted_map_item_data = {
 	path: string?,
 	value: any,
 	etag: string?,
@@ -19,11 +19,27 @@ export type sorted_map_item = {
 	stringSortKey: string?,
 	numericSortKey: number?,
 }
+export type queue_item_creation = { data: any, priority: number?, ttl: string?, expireTime: string? }
+export type sorted_map_item_creation = {
+	value: any,
+	ttl: string?,
+	expireTime: string?,
+	stringSortKey: string?,
+	numericSortKey: number?,
+}
+export type sorted_map_item_patch = {
+	value: any,
+	etag: string?,
+	ttl: string?,
+	expireTime: string?,
+	stringSortKey: string?,
+	numericSortKey: number?,
+}
 
 -- TODO: complete from Roblox cloud docs
-export type queue_read = { items: { queue_item }?, readId: string? }
+export type queue_read = { items: { queue_item_data }?, readId: string? }
 -- TODO: complete from Roblox cloud docs
-export type sorted_map_page = { items: { sorted_map_item }, nextPageToken: string? }
+export type sorted_map_page = { items: { sorted_map_item_data }, nextPageToken: string? }
 
 local QUEUE = 'https://apis.roblox.com/cloud/v2/universes/{universe_id}/memory-store/queues/{queue_id}/items'
 local MAP = 'https://apis.roblox.com/cloud/v2/universes/{universe_id}/memory-store/sorted-maps/{sorted_map_id}/items'
@@ -58,7 +74,7 @@ export type ordered_page_query = typeof(ORDERED_PAGE)
 
 -- module
 return table.freeze {
-	enqueue = web.endpoint<<queue_path, nil, queue_item, queue_item>> {
+	enqueue = web.endpoint<<queue_path, nil, queue_item_creation, queue_item_data>> {
 		base = QUEUE,
 		method = 'POST',
 		auth = QUEUE_ADD,
@@ -94,7 +110,7 @@ return table.freeze {
 		query = ORDERED_PAGE,
 	},
 
-	get_sorted_map_item = web.endpoint<<item_path, nil, nil, sorted_map_item>> {
+	get_sorted_map_item = web.endpoint<<item_path, nil, nil, sorted_map_item_data>> {
 		base = `{MAP}/\{item_id}`,
 		method = 'GET',
 		auth = MAP_READ,
@@ -102,7 +118,7 @@ return table.freeze {
 		path = ITEM_PATH,
 	},
 
-	set_sorted_map_item = web.endpoint<<map_path, { id: string? }, sorted_map_item, sorted_map_item>> {
+	set_sorted_map_item = web.endpoint<<map_path, { id: string? }, sorted_map_item_creation, sorted_map_item_data>> {
 		base = MAP,
 		method = 'POST',
 		auth = MAP_WRITE,
@@ -112,7 +128,7 @@ return table.freeze {
 		content_type = 'application/json',
 	},
 
-	update_sorted_map_item = web.endpoint<<item_path, { allowMissing: boolean? }, sorted_map_item, sorted_map_item>> {
+	update_sorted_map_item = web.endpoint<<item_path, { allowMissing: boolean? }, sorted_map_item_patch, sorted_map_item_data>> {
 		base = `{MAP}/\{item_id}`,
 		method = 'PATCH',
 		auth = MAP_WRITE,

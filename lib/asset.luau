@@ -23,7 +23,7 @@ export type asset_data = {
 	state: string,
 	socialLink: social_link,
 }
-export type asset_data_patch = {
+export type asset_patch = {
 	assetType: string, -- TODO: add enums
 	assetId: number?,
 	displayName: string,
@@ -58,7 +58,7 @@ export type asset_versions_page = { assetVersions: { asset_version }, nextPageTo
 export type download_location = { location: string }
 
 -- `content` is the asset file, optional on update
-export type asset_upload = { content: buffer?, asset: asset_data_patch }
+export type asset_upload = { content: buffer?, asset: asset_patch }
 
 local READ: web.auth_spec = { apikey = { scope = { ['asset:read'] = true } } }
 local WRITE: web.auth_spec = { apikey = { scope = { ['asset:read'] = true, ['asset:write'] = true } } }

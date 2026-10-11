@@ -22,9 +22,9 @@ export type complete_task = done_base & { state: 'COMPLETE', output: { results: 
 export type cancelled_task = done_base & { state: 'CANCELLED' }
 
 export type done_task = failed_task | complete_task | cancelled_task
-export type task = pending_task | failed_task | complete_task | cancelled_task
+export type task_data = pending_task | failed_task | complete_task | cancelled_task
 
-export type task_input = { script: string, timeout: number? }
+export type task_creation = { script: string, timeout: number? }
 
 export type binary_input = { path: string?, content: buffer?, size: string? }
 export type create_binary_input_request = { request_id: string? }
@@ -75,7 +75,7 @@ type task_path = typeof(TASK)
 -- module
 return table.freeze {
 	-- `version` is optional, defaults to the latest place version
-	create = web.endpoint<<tasks_path, nil, task_input, pending_task>> {
+	create = web.endpoint<<tasks_path, nil, task_creation, pending_task>> {
 		base = `{PLACE}/luau-execution-session-tasks`,
 		method = 'POST',
 		auth = WRITE,
@@ -91,7 +91,7 @@ return table.freeze {
 	},
 
 	-- `path` is the task path, as returned in `task.path`
-	get = web.endpoint<<task_path, nil, nil, task>> {
+	get = web.endpoint<<task_path, nil, nil, task_data>> {
 		base = 'https://apis.roblox.com/cloud/v2/{path}',
 		method = 'GET',
 		auth = READ,

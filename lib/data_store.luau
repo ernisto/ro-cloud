@@ -1,8 +1,8 @@
 local web = require './web'
 
 -- defs
-export type data_store = { path: string?, createTime: string?, expireTime: string?, state: string?, id: string? }
-export type entry = {
+export type store_data = { path: string?, createTime: string?, expireTime: string?, state: string?, id: string? }
+export type entry_data = {
 	path: string?,
 	id: string?,
 	createTime: string?,
@@ -14,17 +14,21 @@ export type entry = {
 	users: { string }?,
 	attributes: any?,
 }
-export type ordered_entry = { path: string?, value: number?, id: string? }
+export type entry_creation = { value: any, users: { string }?, attributes: any? }
+export type entry_patch = entry_creation
+export type ordered_entry_data = { path: string?, value: number?, id: string? }
+export type ordered_entry_creation = { value: number }
+export type ordered_entry_patch = ordered_entry_creation
 export type increment = { amount: number, users: { string }?, attributes: any? }
 
 -- TODO: complete from Roblox cloud docs
-export type stores_page = { dataStores: { data_store }, nextPageToken: string? }
+export type stores_page = { dataStores: { store_data }, nextPageToken: string? }
 -- TODO: complete from Roblox cloud docs
-export type entries_page = { dataStoreEntries: { entry }, nextPageToken: string? }
+export type entries_page = { dataStoreEntries: { entry_data }, nextPageToken: string? }
 -- TODO: complete from Roblox cloud docs
-export type entry_revisions_page = { dataStoreEntries: { entry }, nextPageToken: string? }
+export type entry_revisions_page = { dataStoreEntries: { entry_data }, nextPageToken: string? }
 -- TODO: complete from Roblox cloud docs
-export type ordered_entries_page = { orderedDataStoreEntries: { ordered_entry }, nextPageToken: string? }
+export type ordered_entries_page = { orderedDataStoreEntries: { ordered_entry_data }, nextPageToken: string? }
 -- TODO: complete from Roblox cloud docs
 export type snapshot_result = { newSnapshotTaken: boolean?, latestSnapshotTime: string? }
 
@@ -115,7 +119,7 @@ return table.freeze {
 		query = PAGE,
 	},
 
-	delete_store = web.endpoint<<store_path, nil, nil, data_store>> {
+	delete_store = web.endpoint<<store_path, nil, nil, store_data>> {
 		base = STORE,
 		method = 'DELETE',
 		auth = CONTROL_DELETE,
@@ -123,7 +127,7 @@ return table.freeze {
 		path = STORE_PATH,
 	},
 
-	undelete_store = web.endpoint<<store_path, nil, nil, data_store>> {
+	undelete_store = web.endpoint<<store_path, nil, nil, store_data>> {
 		base = `{STORE}:undelete`,
 		method = 'POST',
 		auth = CONTROL_DELETE,
@@ -142,7 +146,7 @@ return table.freeze {
 		request = entries_request,
 	},
 
-	create_entry = web.endpoint<<scope_path, { id: string? }, entry, entry>> {
+	create_entry = web.endpoint<<scope_path, { id: string? }, entry_creation, entry_data>> {
 		base = `{STORE}/entries`,
 		method = 'POST',
 		auth = OBJECTS_CREATE,
@@ -153,7 +157,7 @@ return table.freeze {
 		request = entries_request,
 	},
 
-	get_entry = web.endpoint<<entry_path, nil, nil, entry>> {
+	get_entry = web.endpoint<<entry_path, nil, nil, entry_data>> {
 		base = `{STORE}/entries/\{entry_id}`,
 		method = 'GET',
 		auth = OBJECTS_READ,
@@ -162,7 +166,7 @@ return table.freeze {
 		request = entry_request,
 	},
 
-	update_entry = web.endpoint<<entry_path, allow_missing_query, entry, entry>> {
+	update_entry = web.endpoint<<entry_path, allow_missing_query, entry_patch, entry_data>> {
 		base = `{STORE}/entries/\{entry_id}`,
 		method = 'PATCH',
 		auth = OBJECTS_UPDATE,
@@ -182,7 +186,7 @@ return table.freeze {
 		request = entry_request,
 	},
 
-	increment_entry = web.endpoint<<entry_path, nil, increment, entry>> {
+	increment_entry = web.endpoint<<entry_path, nil, increment, entry_data>> {
 		base = `{STORE}/entries/\{entry_id}:increment`,
 		method = 'POST',
 		auth = OBJECTS_INCREMENT,
@@ -211,7 +215,7 @@ return table.freeze {
 		query = ORDERED_PAGE,
 	},
 
-	create_ordered_entry = web.endpoint<<ordered_path, { id: string }, { value: number }, ordered_entry>> {
+	create_ordered_entry = web.endpoint<<ordered_path, { id: string }, ordered_entry_creation, ordered_entry_data>> {
 		base = `{ORDERED}/entries`,
 		method = 'POST',
 		auth = ORDERED_WRITE,
@@ -221,7 +225,7 @@ return table.freeze {
 		content_type = 'application/json',
 	},
 
-	get_ordered_entry = web.endpoint<<ordered_entry_path, nil, nil, ordered_entry>> {
+	get_ordered_entry = web.endpoint<<ordered_entry_path, nil, nil, ordered_entry_data>> {
 		base = `{ORDERED}/entries/\{entry_id}`,
 		method = 'GET',
 		auth = ORDERED_READ,
@@ -229,7 +233,7 @@ return table.freeze {
 		path = ORDERED_ENTRY_PATH,
 	},
 
-	update_ordered_entry = web.endpoint<<ordered_entry_path, allow_missing_query, { value: number }, ordered_entry>> {
+	update_ordered_entry = web.endpoint<<ordered_entry_path, allow_missing_query, ordered_entry_patch, ordered_entry_data>> {
 		base = `{ORDERED}/entries/\{entry_id}`,
 		method = 'PATCH',
 		auth = ORDERED_WRITE,
@@ -247,7 +251,7 @@ return table.freeze {
 		path = ORDERED_ENTRY_PATH,
 	},
 
-	increment_ordered_entry = web.endpoint<<ordered_entry_path, nil, { amount: number }, ordered_entry>> {
+	increment_ordered_entry = web.endpoint<<ordered_entry_path, nil, { amount: number }, ordered_entry_data>> {
 		base = `{ORDERED}/entries/\{entry_id}:increment`,
 		method = 'POST',
 		auth = ORDERED_WRITE,

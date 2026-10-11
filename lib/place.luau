@@ -2,7 +2,7 @@ local web = require './web'
 type json = { [string]: any }
 
 -- defs
-export type info = {
+export type place_data = {
 	path: string?,
 	createTime: string?,
 	updateTime: string?,
@@ -13,11 +13,12 @@ export type info = {
 	universeRuntimeCreation: boolean?,
 	templatePlace: string?,
 }
-export type info_patch = { displayName: string?, description: string?, serverSize: number? }
+export type place_patch = { displayName: string?, description: string?, serverSize: number? }
 
-export type instance = { path: string?, hasChildren: boolean?, engineInstance: any? }
+export type instance_data = { path: string?, hasChildren: boolean?, engineInstance: any? }
+export type instance_patch = { engineInstance: any }
 
-export type create_params = { templatePlaceId: number }
+export type place_creation = { templatePlaceId: number }
 export type create_response = { placeId: number }
 
 local INSTANCE_URL =
@@ -43,7 +44,7 @@ local INSTANCE_WRITE: web.auth_spec = { apikey = { scope = { ['universe.place.in
 
 -- module
 return table.freeze {
-	create = web.endpoint<<universe_path, nil, create_params, create_response>> {
+	create = web.endpoint<<universe_path, nil, place_creation, create_response>> {
 		base = 'https://apis.roblox.com/universes/v1/user/universes/{universe_id}/places',
 		method = 'POST',
 		auth = COOKIE,
@@ -62,7 +63,7 @@ return table.freeze {
 		content_type = 'application/octet-stream',
 	},
 
-	get_info = web.endpoint<<place_path, nil, nil, info>> {
+	get_info = web.endpoint<<place_path, nil, nil, place_data>> {
 		base = 'https://apis.roblox.com/cloud/v2/universes/{universe_id}/places/{place_id}',
 		method = 'GET',
 		auth = NONE,
@@ -70,7 +71,7 @@ return table.freeze {
 		path = PLACE,
 	},
 
-	update_info = web.endpoint<<place_path, nil, info_patch, info>> {
+	update_info = web.endpoint<<place_path, nil, place_patch, place_data>> {
 		base = 'https://apis.roblox.com/cloud/v2/universes/{universe_id}/places/{place_id}',
 		method = 'PATCH',
 		auth = WRITE,
@@ -88,7 +89,7 @@ return table.freeze {
 		path = INSTANCE,
 	},
 
-	update_instance = web.endpoint<<instance_path, nil, instance, json>> {
+	update_instance = web.endpoint<<instance_path, nil, instance_patch, json>> {
 		base = INSTANCE_URL,
 		method = 'PATCH',
 		auth = INSTANCE_WRITE,

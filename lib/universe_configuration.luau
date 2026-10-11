@@ -17,7 +17,7 @@ type universe_permissions = {
 	IsClientTeleportAllowed: boolean?,
 }
 
-export type settings_patch_v2 = {
+export type settings_patch = {
 	name: string?,
 	genre: number?,
 	description: string?,
@@ -95,7 +95,7 @@ export type settings_data_v1 = {
 	demoModeChangeableAfter: string?,
 }
 
-export type settings_data_v2 = settings_data_v1 & {
+export type settings_data = settings_data_v1 & {
 	optInRegions: { { region: number, status: string } }?,
 }
 
@@ -113,7 +113,7 @@ return table.freeze {
 		path = UNIVERSE,
 	},
 
-	update = web.endpoint<<universe_path, nil, settings_patch_v2, settings_data_v2>> {
+	update = web.endpoint<<universe_path, nil, settings_patch, settings_data>> {
 		base = 'https://develop.roblox.com/v2/universes/{universe_id}/configuration',
 		method = 'PATCH',
 		auth = COOKIE,

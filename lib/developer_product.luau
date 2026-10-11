@@ -10,7 +10,7 @@ export type product_patch = {
 	isRegionalPricingEnabled: boolean?,
 	storePageEnabled: boolean?,
 }
-export type product_create_data = {
+export type product_creation = {
 	name: string,
 	price: number?,
 	description: string?,
@@ -53,7 +53,7 @@ export type page_query = typeof(PAGE)
 
 -- module
 return table.freeze {
-	create = web.endpoint<<universe_path, nil, product_create_data, product_data>> {
+	create = web.endpoint<<universe_path, nil, product_creation, product_data>> {
 		base = BASE,
 		method = 'POST',
 		auth = WRITE,

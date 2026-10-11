@@ -1,7 +1,7 @@
 local web = require './web'
 
 -- defs
-export type pass_data = {
+export type pass_creation = {
 	name: string,
 	price: number?,
 	description: string?,
@@ -17,7 +17,7 @@ export type pass_patch = {
 	isForSale: boolean?,
 	isRegionalPricingEnabled: boolean?,
 }
-export type pass_info = {
+export type pass_data = {
 	name: string,
 	isForSale: boolean,
 	description: string,
@@ -32,7 +32,7 @@ export type pass_info = {
 }
 
 export type pass_page = {
-	gamePasses: { pass_info },
+	gamePasses: { pass_data },
 	nextPageToken: string,
 }
 
@@ -51,7 +51,7 @@ export type page_query = typeof(PAGE)
 
 -- module
 return table.freeze {
-	create = web.endpoint<<universe_path, nil, pass_data, pass_info>> {
+	create = web.endpoint<<universe_path, nil, pass_creation, pass_data>> {
 		base = BASE,
 		method = 'POST',
 		auth = WRITE,
@@ -69,7 +69,7 @@ return table.freeze {
 		content_type = 'multipart/form-data',
 	},
 
-	get = web.endpoint<<pass_path, nil, nil, pass_info>> {
+	get = web.endpoint<<pass_path, nil, nil, pass_data>> {
 		base = `{BASE}/\{pass_id}/creator`,
 		method = 'GET',
 		auth = READ,

@@ -25,7 +25,7 @@ export type user_data = {
 
 export type authenticated_user = { id: number, name: string, displayName: string }
 
-export type inventory_item = {
+export type inventory_item_data = {
 	path: string?,
 	assetDetails: any?,
 	badgeDetails: any?,
@@ -33,9 +33,10 @@ export type inventory_item = {
 	privateServerDetails: any?,
 }
 
-export type notification = { path: string?, id: string?, source: any?, payload: any? }
+export type notification_data = { path: string?, id: string?, source: any?, payload: any? }
+export type notification_creation = { source: any?, payload: any? }
 
-export type subscription = {
+export type subscription_data = {
 	path: string?,
 	createTime: string?,
 	updateTime: string?,
@@ -49,7 +50,7 @@ export type subscription = {
 }
 
 -- TODO: complete from Roblox cloud docs
-export type inventory_page = { inventoryItems: { inventory_item }, nextPageToken: string? }
+export type inventory_page = { inventoryItems: { inventory_item_data }, nextPageToken: string? }
 
 local COOKIE: web.auth_spec = { cookie = {} }
 local READ: web.auth_spec = { apikey = { scope = { ['user.advanced:read'] = true, ['user.social:read'] = true } } }
@@ -93,7 +94,7 @@ return table.freeze {
 		query = PAGE,
 	},
 
-	send_notification = web.endpoint<<user_path, nil, notification, notification>> {
+	send_notification = web.endpoint<<user_path, nil, notification_creation, notification_data>> {
 		base = 'https://apis.roblox.com/cloud/v2/users/{user_id}/notifications',
 		method = 'POST',
 		auth = NOTIFICATION_WRITE,
@@ -102,7 +103,7 @@ return table.freeze {
 		content_type = 'application/json',
 	},
 
-	get_subscription = web.endpoint<<subscription_path, { view: string? }, nil, subscription>> {
+	get_subscription = web.endpoint<<subscription_path, { view: string? }, nil, subscription_data>> {
 		base = 'https://apis.roblox.com/cloud/v2/universes/{universe_id}/subscription-products/{subscription_product_id}/subscriptions/{subscription_id}',
 		method = 'GET',
 		auth = SUBSCRIPTION_READ,

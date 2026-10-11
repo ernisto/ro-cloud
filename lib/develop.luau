@@ -4,8 +4,8 @@ local web = require './web'
 -- defs
 type date = string
 
-export type dev_group = { name: string, id: number }
-export type dev_universe = {
+export type group_data = { name: string, id: number }
+export type universe_data = {
 	id: number,
 	name: string,
 	creatorType: 'User' | 'Group',
@@ -42,7 +42,7 @@ export type place_list_query = typeof(PLACE_LIST)
 
 -- module
 return table.freeze {
-	get_user_universes = web.endpoint<<nil, page_query, nil, page<dev_universe>>> {
+	get_user_universes = web.endpoint<<nil, page_query, nil, page<universe_data>>> {
 		base = 'https://develop.roblox.com/v1/user/universes',
 		method = 'GET',
 		auth = COOKIE,
@@ -50,7 +50,7 @@ return table.freeze {
 		query = PAGE,
 	},
 
-	get_group_universes = web.endpoint<<{ group_id: number }, page_query, nil, page<dev_universe>>> {
+	get_group_universes = web.endpoint<<{ group_id: number }, page_query, nil, page<universe_data>>> {
 		base = 'https://develop.roblox.com/v1/groups/{group_id}/universes',
 		method = 'GET',
 		auth = COOKIE,
@@ -58,7 +58,7 @@ return table.freeze {
 		query = PAGE,
 	},
 
-	get_groups = web.endpoint<<nil, nil, nil, { data: { dev_group } }>> {
+	get_groups = web.endpoint<<nil, nil, nil, { data: { group_data } }>> {
 		base = 'https://develop.roblox.com/v1/user/groups/canmanagegamesoritems',
 		method = 'GET',
 		auth = COOKIE,

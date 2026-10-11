@@ -10,14 +10,16 @@ type game_join_restriction = {
 	excludeAltAccounts: boolean?,
 }
 
-export type restriction = {
+export type restriction_data = {
 	path: string?,
 	updateTime: string?,
 	user: string?,
 	gameJoinRestriction: game_join_restriction?,
 }
 
-export type restriction_log = {
+export type restriction_patch = { gameJoinRestriction: game_join_restriction? }
+
+export type restriction_log_data = {
 	user: string?,
 	place: string?,
 	moderator: { gameJoinRestrictionType: string? }?,
@@ -31,9 +33,9 @@ export type restriction_log = {
 }
 
 -- TODO: complete from Roblox cloud docs
-export type restrictions_page = { userRestrictions: { restriction }, nextPageToken: string? }
+export type restrictions_page = { userRestrictions: { restriction_data }, nextPageToken: string? }
 -- TODO: complete from Roblox cloud docs
-export type restriction_logs_page = { logs: { restriction_log }, nextPageToken: string? }
+export type restriction_logs_page = { logs: { restriction_log_data }, nextPageToken: string? }
 
 local UNIVERSE = 'https://apis.roblox.com/cloud/v2/universes/{universe_id}/user-restrictions'
 local PLACE = 'https://apis.roblox.com/cloud/v2/universes/{universe_id}/places/{place_id}/user-restrictions'
@@ -75,7 +77,7 @@ return table.freeze {
 		request = subject_request '',
 	},
 
-	get = web.endpoint<<restriction_path, nil, nil, restriction>> {
+	get = web.endpoint<<restriction_path, nil, nil, restriction_data>> {
 		base = `{UNIVERSE}/\{user_restriction_id}`,
 		method = 'GET',
 		auth = READ,
@@ -84,7 +86,7 @@ return table.freeze {
 		request = restriction_request,
 	},
 
-	update = web.endpoint<<restriction_path, update_query, restriction, restriction>> {
+	update = web.endpoint<<restriction_path, update_query, restriction_patch, restriction_data>> {
 		base = `{UNIVERSE}/\{user_restriction_id}`,
 		method = 'PATCH',
 		auth = WRITE,

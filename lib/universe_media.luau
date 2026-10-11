@@ -3,7 +3,7 @@ local web = require './web'
 -- defs
 export type upload_response = { targetId: number }
 export type remove_icon_body = { placeId: number, placeIconId: number }
-export type media_item = {
+export type media_item_data = {
 	assetTypeId: number,
 	assetType: string,
 	imageId: number?,
@@ -59,7 +59,7 @@ return table.freeze {
 		request = image_request,
 	},
 
-	list_thumbnails = web.endpoint<<universe_path, nil, nil, { data: { media_item } }>> {
+	list_thumbnails = web.endpoint<<universe_path, nil, nil, { data: { media_item_data } }>> {
 		base = 'https://games.roblox.com/v1/games/{universe_id}/media',
 		method = 'GET',
 		auth = COOKIE,

@@ -12,7 +12,7 @@
 | `lib/auth/init.luau` | `new` session builder: `new:api_key(key)`, `new:cookie(cookie)` (each returns a cloned session). Also `api_key`, `cookie` submodules. Types `session` (= `web.auth`), `api_key_introspection`. |
 | `lib/auth/api_key.luau` | `introspect` api (`POST api-keys/v1/introspect`); pure `usable(info)`, `has_scope(info, 'name:operation', target?)`. Types: `scope`, `introspection`. |
 | `lib/auth/cookie.luau` | `get_info` api (= `user.get_authenticated`). |
-| `lib/init.luau` | Re-exports every module (`web`, `auth`, `json`, `form`, resources; `product` = developer_product, `pass` = game_pass) and common types (`api`, `auth`, `request`, `error`, …). |
+| `lib/init.luau` | Re-exports every module (`web`, `auth`, `json`, `form`, resources; `product` = developer_product, `pass` = game_pass) and every resource type, prefixed by module (`<obj>_data` responses, `<obj>_creation` create bodies, `<obj>_patch` update bodies, `<obj>s_page` lists), plus `endpoint`, `auth`, `request`, `error`, `session`. |
 
 ## lib/ (resources)
 

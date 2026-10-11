@@ -19,7 +19,7 @@ type role_permissions = {
 	viewAnalytics: boolean?,
 }
 
-export type group = {
+export type group_data = {
 	path: string?,
 	createTime: string?,
 	updateTime: string?,
@@ -33,9 +33,10 @@ export type group = {
 	verified: boolean?,
 }
 
-export type membership = { path: string?, createTime: string?, updateTime: string?, user: string?, role: string? }
+export type membership_data = { path: string?, createTime: string?, updateTime: string?, user: string?, role: string? }
+export type membership_patch = { role: string }
 
-export type role = {
+export type role_data = {
 	path: string?,
 	createTime: string?,
 	updateTime: string?,
@@ -47,16 +48,16 @@ export type role = {
 	permissions: role_permissions?,
 }
 
-export type shout = { path: string?, createTime: string?, updateTime: string?, content: string?, poster: string? }
+export type shout_data = { path: string?, createTime: string?, updateTime: string?, content: string?, poster: string? }
 
-export type join_request = { path: string?, createTime: string?, user: string? }
+export type join_request_data = { path: string?, createTime: string?, user: string? }
 
 -- TODO: complete from Roblox cloud docs
-export type roles_page = { groupRoles: { role }, nextPageToken: string? }
+export type roles_page = { groupRoles: { role_data }, nextPageToken: string? }
 -- TODO: complete from Roblox cloud docs
-export type memberships_page = { groupMemberships: { membership }, nextPageToken: string? }
+export type memberships_page = { groupMemberships: { membership_data }, nextPageToken: string? }
 -- TODO: complete from Roblox cloud docs
-export type join_requests_page = { groupJoinRequests: { join_request }, nextPageToken: string? }
+export type join_requests_page = { groupJoinRequests: { join_request_data }, nextPageToken: string? }
 
 local GROUP = 'https://apis.roblox.com/cloud/v2/groups/{group_id}'
 
@@ -74,7 +75,7 @@ export type page_query = typeof(PAGE)
 
 -- module
 return table.freeze {
-	get = web.endpoint<<group_path, nil, nil, group>> {
+	get = web.endpoint<<group_path, nil, nil, group_data>> {
 		base = GROUP,
 		method = 'GET',
 		auth = NONE,
@@ -82,7 +83,7 @@ return table.freeze {
 		path = GROUP_PATH,
 	},
 
-	get_shout = web.endpoint<<group_path, nil, nil, shout>> {
+	get_shout = web.endpoint<<group_path, nil, nil, shout_data>> {
 		base = `{GROUP}/shout`,
 		method = 'GET',
 		auth = READ,
@@ -98,7 +99,7 @@ return table.freeze {
 		query = PAGE,
 	},
 
-	get_role = web.endpoint<<{ group_id: number, role_id: string }, nil, nil, role>> {
+	get_role = web.endpoint<<{ group_id: number, role_id: string }, nil, nil, role_data>> {
 		base = `{GROUP}/roles/\{role_id}`,
 		method = 'GET',
 		auth = READ,
@@ -115,7 +116,7 @@ return table.freeze {
 		query = PAGE,
 	},
 
-	update_membership = web.endpoint<<{ group_id: number, membership_id: string }, nil, membership, membership>> {
+	update_membership = web.endpoint<<{ group_id: number, membership_id: string }, nil, membership_patch, membership_data>> {
 		base = `{GROUP}/memberships/\{membership_id}`,
 		method = 'PATCH',
 		auth = WRITE,

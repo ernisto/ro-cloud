@@ -68,7 +68,7 @@ export type universe_data = universe_social_links & universe_platform_flags & {
 }
 export type message = { topic: string, message: string }
 
-export type create_params = { templatePlaceId: number, groupId: number? }
+export type universe_creation = { templatePlaceId: number, groupId: number? }
 export type create_response = { universeId: number, rootPlaceId: number? }
 
 local UNIVERSE = table.freeze { universe_id = 0 }
@@ -81,7 +81,7 @@ local PUBLISH: web.auth_spec = { apikey = { scope = { ['universe-messaging-servi
 
 -- module
 return table.freeze {
-	create = web.endpoint<<nil, nil, create_params, create_response>> {
+	create = web.endpoint<<nil, nil, universe_creation, create_response>> {
 		base = 'https://apis.roblox.com/universes/v1/universes/create',
 		method = 'POST',
 		auth = COOKIE,
