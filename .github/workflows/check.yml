@@ -3,12 +3,17 @@ name: Check
 on:
   workflow_dispatch:
   workflow_call:
+  # PRs are checked by `pull_request`; `push` only covers main, so a PR
+  # branch isn't checked twice (once for the push, once for the PR).
   pull_request:
   push:
     branches:
-      - "**"
-    tags-ignore:
-      - "**"
+      - main
+
+# A newer push to the same PR/branch cancels the run in progress.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   check-format:
@@ -47,7 +52,15 @@ jobs:
         with:
           token: ${{ github.token }}
 
-      - name: Run tests
+      # Request building only: no network, no credentials.
+      - name: Run offline tests
+        run: lute test --suite api
+
+      # Live api tests use ROBLOX_API_KEY. They never run for pull requests
+      # from forks (GitHub doesn't expose secrets to them anyway), so outside
+      # contributors still get a green check from the offline tests.
+      - name: Run live tests
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
         run: lute test
         env:
           API_KEY: ${{ secrets.ROBLOX_API_KEY }}
