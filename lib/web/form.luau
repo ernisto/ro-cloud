@@ -4,6 +4,9 @@
 export type parts = { string }
 export type boundary = string
 
+-- a file field with explicit metadata; bare buffers are sent as `icon.png` (`image/png`)
+export type file = { file_name: string, content_type: string, content: buffer }
+
 -- functions
 local function insert_boundary(parts: parts, boundary: boundary)
 	table.insert(parts, '--' .. boundary .. '\r\n')
@@ -47,6 +50,9 @@ local function form_by_table(fields: {}): (buffer, string)
 	for name, value in fields :: any do
 		if type(value) == 'buffer' then
 			f.file(name, 'icon.png', 'image/png', value)
+		elseif type(value) == 'table' and type(value.content) == 'buffer' then
+			local file: file = value
+			f.file(name, file.file_name, file.content_type, file.content)
 		else
 			f.text(name, value :: any)
 		end

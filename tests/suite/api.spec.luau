@@ -52,6 +52,51 @@ test.suite('api', function(s)
 		)
 	end)
 
+	s:case('asset_download_version', function(t)
+		local auth = cloud.auth.new:api_key 'k'
+		local latest = cloud.asset.download:request(auth, { asset_id = 1 })
+		local versioned = cloud.asset.download:request(auth, { asset_id = 1, version = 7 })
+		t.eq(latest.url, 'https://apis.roblox.com/asset-delivery-api/v1/assetId/1')
+		t.eq(versioned.url, 'https://apis.roblox.com/asset-delivery-api/v1/assetId/1/version/7')
+	end)
+
+	s:case('asset_upload_content_type', function(t)
+		local auth = cloud.auth.new:api_key 'k'
+		local function upload(content: string, file_name: string?, content_type: string?): string
+			local req = cloud.asset.update:request(auth, { asset_id = 1 }, {
+				asset = { assetType = 'Model', displayName = 'x' },
+				content = buffer.fromstring(content),
+				file_name = file_name,
+				content_type = content_type,
+			})
+			return req.body and buffer.tostring(req.body) or ''
+		end
+
+		local rbxm = upload '<roblox!\x89\xff\x0d\x0a\x1a\x0a'
+		t.strContains(rbxm, 'name="fileContent"; filename="asset.rbxm"', nil, 'rbxm file name')
+		t.strContains(rbxm, 'Content-Type: model/x-rbxm\r', nil, 'rbxm content type')
+		t.strContains(upload '<roblox xmlns:xmime=""', 'Content-Type: model/x-rbxmx', nil, 'rbxmx content type')
+		t.strContains(upload 'Kaydara FBX Binary  \0', 'Content-Type: model/fbx', nil, 'fbx content type')
+		t.strContains(upload '\x89PNG\r\n\x1a\n', 'Content-Type: image/png', nil, 'png content type')
+		t.strContains(upload 'RIFF\0\0\0\0WAVEfmt ', 'Content-Type: audio/wav', nil, 'wav content type')
+		t.strContains(upload 'unknown', 'Content-Type: application/octet-stream', nil, 'fallback content type')
+
+		local custom = upload('<roblox!', 'pkg.rbxm', 'model/custom')
+		t.strContains(custom, 'filename="pkg.rbxm"', nil, 'file name override')
+		t.strContains(custom, 'Content-Type: model/custom', nil, 'content type override')
+	end)
+
+	s:case('form_file_fields', function(t)
+		local body = cloud.form.by_table {
+			icon = buffer.fromstring 'img',
+			doc = { file_name = 'a.txt', content_type = 'text/plain', content = buffer.fromstring 'hi' },
+		}
+		local text = buffer.tostring(body)
+		t.strContains(text, 'name="icon"; filename="icon.png"', nil, 'bare buffers keep the icon default')
+		t.strContains(text, 'name="doc"; filename="a.txt"', nil, 'file field name')
+		t.strContains(text, 'Content-Type: text/plain', nil, 'file field content type')
+	end)
+
 	s:case('picks_accepted_credential', function(t)
 		local auth = cloud.auth.new:api_key('k'):cookie 'c'
 		auth.cookie_state.csrf_token = 't'

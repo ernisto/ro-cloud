@@ -57,8 +57,10 @@ export type asset_versions_page = { assetVersions: { asset_version }, nextPageTo
 
 export type download_location = { location: string }
 
--- `content` is the asset file, optional on update
-export type asset_upload = { content: buffer?, asset: asset_patch }
+-- `content` is the asset file, optional on update. its multipart file name and
+-- content type are detected from the file's magic bytes (rbxm, rbxmx, fbx, glb,
+-- png, jpeg, bmp, ogg, wav, flac, mp3, mp4); set `file_name` / `content_type` to override
+export type asset_upload = { content: buffer?, asset: asset_patch, file_name: string?, content_type: string? }
 
 local READ: web.auth_spec = { apikey = { scope = { ['asset:read'] = true } } }
 local WRITE: web.auth_spec = { apikey = { scope = { ['asset:read'] = true, ['asset:write'] = true } } }
@@ -68,26 +70,72 @@ local LEGACY_MANAGE: web.auth_spec = { apikey = { scope = { ['legacy-asset:manag
 local ASSETS = 'https://apis.roblox.com/assets/v1/assets'
 
 local ASSET = table.freeze { asset_id = 0 }
+local MAYBE_VERSION = table.freeze { asset_id = 0, version = 0 :: number? }
 local VERSION = table.freeze { asset_id = 0, version = 0 }
 local OPERATION = table.freeze { operation_id = '' }
 local PAGE = table.freeze { maxPageSize = 0 :: number?, pageToken = '' :: string? }
 type asset_path = typeof(ASSET)
+type maybe_version_path = typeof(MAYBE_VERSION)
 type version_path = typeof(VERSION)
 type operation_path = typeof(OPERATION)
 export type page_query = typeof(PAGE)
 
+-- { magic bytes, offset, extension, content type }
+local SIGNATURES: { { any } } = {
+	{ '<roblox!', 0, 'rbxm', 'model/x-rbxm' },
+	{ '<roblox', 0, 'rbxmx', 'model/x-rbxmx' },
+	{ 'Kaydara FBX Binary', 0, 'fbx', 'model/fbx' },
+	{ 'glTF', 0, 'glb', 'model/gltf-binary' },
+	{ '\x89PNG', 0, 'png', 'image/png' },
+	{ '\xFF\xD8\xFF', 0, 'jpg', 'image/jpeg' },
+	{ 'BM', 0, 'bmp', 'image/bmp' },
+	{ 'OggS', 0, 'ogg', 'audio/ogg' },
+	{ 'fLaC', 0, 'flac', 'audio/flac' },
+	{ 'WAVE', 8, 'wav', 'audio/wav' },
+	{ 'ID3', 0, 'mp3', 'audio/mpeg' },
+	{ '\xFF\xFB', 0, 'mp3', 'audio/mpeg' },
+	{ 'ftyp', 4, 'mp4', 'video/mp4' },
+}
+
+local function detect_file(content: buffer): (string, string)
+	local size = buffer.len(content)
+	for _, signature in SIGNATURES do
+		local magic: string, offset: number = signature[1], signature[2]
+		if size >= offset + #magic and buffer.readstring(content, offset, #magic) == magic then
+			return `asset.{signature[3]}`, signature[4]
+		end
+	end
+	return 'asset.bin', 'application/octet-stream'
+end
+
 local function upload_form(upload: asset_upload)
-	return { fileContent = upload.content, request = buffer.tostring(json.encode(upload.asset)) }
+	local fields: { [string]: any } = { request = buffer.tostring(json.encode(upload.asset)) }
+	local content = upload.content
+	if content then
+		local file_name, content_type = detect_file(content)
+		fields.fileContent = {
+			file_name = upload.file_name or file_name,
+			content_type = upload.content_type or content_type,
+			content = content,
+		}
+	end
+	return fields
 end
 
 -- module
 return table.freeze {
-	download = web.endpoint<<asset_path, { version: number? }, nil, download_location>> {
+	-- `version` is optional, defaults to the latest version
+	download = web.endpoint<<maybe_version_path, nil, nil, download_location>> {
 		base = 'https://apis.roblox.com/asset-delivery-api/v1/assetId/{asset_id}',
 		method = 'GET',
 		auth = LEGACY_MANAGE,
-		path = ASSET,
-		query = { version = 0 :: number? },
+		path = MAYBE_VERSION,
+		request = function(self, auth, path)
+			local base = if path.version
+				then 'https://apis.roblox.com/asset-delivery-api/v1/assetId/{asset_id}/version/{version}'
+				else nil
+			return web.build(self, auth, { base = base, path = path })
+		end,
 	},
 
 	create = web.endpoint<<nil, nil, asset_upload, asset_operation>> {
