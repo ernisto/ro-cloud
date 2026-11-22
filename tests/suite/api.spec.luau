@@ -14,6 +14,40 @@ test.suite('api', function(s)
 		t.eq(req.headers['Content-Type'], 'application/json', 'missing content type')
 	end)
 
+	s:case('has_scope matches data store universe targets', function(t)
+		local info: any = {
+			scopes = {
+				{
+					name = 'universe-datastores.objects',
+					operations = { 'read' },
+					universeDatastores = { { universeId = '1' } },
+				},
+			},
+		}
+		t.that(
+			cloud.auth.api_key.has_scope(info, 'universe-datastores.objects:read', '1'),
+			'granted universe failed check'
+		)
+		t.that(
+			not cloud.auth.api_key.has_scope(info, 'universe-datastores.objects:read', '2'),
+			'other universe passed check'
+		)
+	end)
+
+	s:case('config_repository_path', function(t)
+		local auth = cloud.auth.new:api_key 'k'
+		local req = cloud.config.update_draft:request(
+			auth,
+			{ universe_id = 1, repository = 'DataStoresConfig' },
+			{ entries = { user_data_templates = {} } }
+		)
+		t.eq(req.method, 'PATCH')
+		t.eq(
+			req.url,
+			'https://apis.roblox.com/creator-configs-public-api/v1/configs/universes/1/repositories/DataStoresConfig/draft'
+		)
+	end)
+
 	s:case('optional_path_segment', function(t)
 		local auth = cloud.auth.new:api_key 'k'
 		local unscoped =

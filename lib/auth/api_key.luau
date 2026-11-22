@@ -7,6 +7,8 @@ export type scope = {
 	universeIds: { string }?,
 	userIds: { string }?,
 	groupIds: { string }?,
+	-- data store scopes target universes here instead of `universeIds`; `datastoreName` narrows to one store
+	universeDatastores: { { universeId: string, datastoreName: string? } }?,
 }
 
 export type introspection = {
@@ -47,6 +49,12 @@ local function has_scope(info: introspection, scope: string, target: string?): b
 			for _, id in ids do
 				if id == target or id == '*' then return true end
 			end
+		end
+		-- ponytail: a store narrowed by `datastoreName` passes for its whole universe, the target is only a universe id
+		local stores = granted.universeDatastores
+		if not stores then continue end
+		for _, store in stores do
+			if store.universeId == target or store.universeId == '*' then return true end
 		end
 	end
 	return false

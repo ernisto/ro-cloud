@@ -134,6 +134,15 @@ export type user_notification_data = user_mod.notification_data
 export type user_notification_creation = user_mod.notification_creation
 export type user_subscription_data = user_mod.subscription_data
 
+local config = require '@self/config'
+export type config_repository = config.repository
+export type config_entry_data = config.entry_data
+export type config_full_data = config.full_data
+export type config_draft_data = config.draft_data
+export type config_draft_patch = config.draft_patch
+export type config_publish_body = config.publish_body
+export type config_publish_response = config.publish_response
+
 local develop = require '@self/develop'
 export type dev_universe_data = develop.universe_data
 export type dev_group_data = develop.group_data
@@ -162,5 +171,6 @@ return table.freeze {
 	luau_task_exec = luau_task_exec,
 	product = developer_product,
 	develop = develop,
+	config = config,
 	pass = pass,
 }

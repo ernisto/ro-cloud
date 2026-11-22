@@ -38,7 +38,7 @@ stylua --check .
     - `lib/web/json.luau` — minimal json encoder (decoding is left to the runtime)
     - `lib/web/form.luau` — multipart form builder
   - `lib/auth/` — session builder (`auth.new:api_key(key):cookie(cookie)`), `auth.api_key` (`introspect` api + pure `has_scope` / `usable`), `auth.cookie` (`get_info` api)
-  - One file per resource: `universe`, `universe_secret`, `universe_media`, `universe_configuration`, `place`, `place_configuration`, `asset`, `data_store`, `memory_store`, `user`, `user_restriction`, `group`, `developer_product`, `game_pass`, `luau_task_exec`, `develop`
+  - One file per resource: `universe`, `universe_secret`, `universe_media`, `universe_configuration`, `place`, `place_configuration`, `asset`, `data_store`, `memory_store`, `user`, `user_restriction`, `group`, `developer_product`, `game_pass`, `luau_task_exec`, `develop`, `config` (creator configs repositories: `InExperienceConfig`, `DataStoresConfig`)
 - `tests/` — lute tests (`fetch.luau` sends lib requests, `config.luau` holds credentials and ids)
 - `scripts/` — lute maintenance scripts
 
